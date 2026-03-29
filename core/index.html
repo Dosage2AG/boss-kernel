@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#050a06">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>B.O.S.S. Kernel v0.5</title>
+<link rel="manifest" href="manifest.json">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+:root {
+  --glow:   #00ffcc;
+  --dim:    #0f2a20;
+  --grief:  #ff4444;
+  --amber:  #ffcc00;
+  --purple: #cc88ff;
+  --bg:     #050a06;
+  --bg2:    #030a06;
+  --terminal: rgba(0,20,10,0.85);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--glow);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  overflow: hidden;
+  height: 100vh;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+}
+
+/* Status bar */
+#status-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: rgba(3,10,6,0.88);
+  border-bottom: 1px solid #0f2a2033;
+  font-size: 9px;
+  color: #335544;
+  z-index: 20;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.status-left  { display: flex; gap: 10px; align-items: center; }
+.status-right { display: flex; gap: 10px; align-items: center; }
+
+#logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700;
+  color: var(--glow); letter-spacing: .15em;
+  text-shadow: 0 0 10px #00ffcc44;
+}
+
+.pill {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(0,20,10,0.6);
+  border: 1px solid #0f2a20;
+  border-radius: 10px; padding: 2px 7px; font-size: 9px;
+}
+.dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #22332a; transition: background .3s, box-shadow .3s;
+}
+.dot.online { background: var(--glow); box-shadow: 0 0 5px var(--glow); }
+.dot.cloud  { background: #6699ff; box-shadow: 0 0 5px #6699ff; }
+.dot.sse    { background: var(--purple); box-shadow: 0 0 5px var(--purple); animation: sse-blink 2s infinite; }
+@keyframes sse-blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+.stat { display: flex; flex-direction: column; align-items: flex-end; font-size: 8px; }
+.stat-l { color: #1a3a20; }
+.stat-v { color: var(--glow); font-weight: 700; }
+
+.batt { display: flex; align-items: center; gap: 2px; }
+.batt-bar { width: 20px; height: 7px; border: 1px solid #335544; border-radius: 1px; overflow: hidden; }
+.batt-fill { height: 100%; background: var(--glow); transition: width .5s, background .5s; }
+.batt-tip { width: 2px; height: 4px; background: #335544; }
+#batt-pct { font-size: 8px; color: #335544; }
+
+.heartbeat {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--glow); box-shadow: 0 0 5px var(--glow);
+  animation: hb 1.4s ease-in-out infinite;
+}
+@keyframes hb { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.15;transform:scale(.7)} }
+
+/* Resonance panel */
+#res-panel {
+  position: fixed;
+  bottom: 180px; left: 12px;
+  width: 170px;
+  background: var(--terminal);
+  border: 1px solid var(--dim);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 9px;
+  z-index: 20;
+  pointer-events: none;
+}
+.res-title { color: #335544; letter-spacing: .1em; margin-bottom: 5px; font-size: 8px; text-transform: uppercase; }
+.res-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.res-name { width: 44px; font-size: 8px; color: #335544; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-track { flex: 1; height: 4px; background: var(--dim); border-radius: 2px; overflow: hidden; }
+.res-fill  { height: 100%; border-radius: 2px; transition: width .4s; }
+.res-val   { width: 30px; font-size: 8px; text-align: right; }
+
+/* Bottom UI */
+#ui {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 0 12px 12px;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Terminal console */
+#console {
+  width: 100%;
+  max-width: 440px;
+  height: 120px;
+  background: var(--terminal);
+  border: 1px solid var(--dim);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px;
+  font-size: 10px; line-height: 1.55;
+  overflow-y: auto;
+  pointer-events: auto;
+  box-shadow: 0 0 20px rgba(0,255,204,0.06);
+}
+#console::-webkit-scrollbar { width: 3px; }
+#console::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+.log-pulse   { color: var(--glow); }
+.log-win     { color: #66ffcc; }
+.log-arbiter { color: var(--purple); }
+.log-grief   { color: var(--grief); }
+.log-sys     { color: #335544; }
+.log-bond    { color: var(--amber); }
+.log-mem     { color: #88aaff; }
+.log-bio     { color: #ff9944; }
+.log-vec     { color: #aa88ff; }
+.log-sse     { color: #dd88ff; }
+.log-err     { color: #ff6666; }
+
+/* Input bar */
+#input-bar {
+  width: 100%; max-width: 440px;
+  display: flex;
+  pointer-events: auto;
+}
+#pulse-input {
+  flex: 1;
+  background: #000;
+  border: 1px solid var(--glow);
+  border-right: none;
+  color: var(--glow);
+  padding: 10px 12px;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 12px;
+  outline: none;
+  border-radius: 0 0 0 4px;
+}
+#pulse-input::placeholder { color: #335544; }
+#pulse-btn {
+  background: #003322;
+  border: 1px solid var(--glow);
+  color: var(--glow);
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  padding: 0 14px;
+  cursor: pointer;
+  border-radius: 0 0 4px 0;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition: background .15s;
+}
+#pulse-btn:active { background: #004433; }
+
+/* Grief overlay */
+.grief-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(60,0,0,.25);
+  border: 2px solid #ff444455;
+  z-index: 50;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.grief-overlay.show { display: flex; }
+.grief-box {
+  background: rgba(0,0,0,.96);
+  border: 1px solid var(--grief);
+  border-radius: 6px;
+  padding: 22px 30px;
+  text-align: center;
+  font-family: 'Orbitron', monospace;
+  color: var(--grief); font-size: 13px; letter-spacing: .1em;
+  pointer-events: all;
+}
+.grief-box p {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: #ff9999; margin-top: 8px; letter-spacing: 0;
+}
+.grief-box button {
+  display: block; margin: 14px auto 0;
+  background: #3a0000; border: 1px solid var(--grief);
+  color: #ff9999; font-family: 'Share Tech Mono', monospace;
+  padding: 7px 20px; border-radius: 3px; cursor: pointer; font-size: 11px;
+  touch-action: manipulation;
+}
+
+/* Tooltip */
+#tip {
+  position: fixed;
+  background: rgba(3,10,6,.97); border: 1px solid var(--dim);
+  border-radius: 4px; padding: 6px 10px; font-size: 9px;
+  pointer-events: none; opacity: 0; transition: opacity .15s;
+  z-index: 30; min-width: 160px; line-height: 1.8;
+}
+#tip.show { opacity: 1; }
+
+/* SSE flash */
+.sse-flash {
+  position: fixed; inset: 0;
+  background: rgba(204,136,255,.07);
+  pointer-events: none;
+  animation: ssf .7s ease-out forwards; z-index: 45;
+}
+@keyframes ssf { 0%{opacity:1}100%{opacity:0} }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div id="status-bar">
+  <div class="status-left">
+    <div id="logo">B·O·S·S</div>
+    <div class="pill"><div class="dot" id="cx-dot"></div><span id="cx-label">cortex off</span></div>
+    <div class="pill"><div class="dot" id="sse-dot"></div><span id="sse-label">sse off</span></div>
+  </div>
+  <div class="status-right">
+    <div class="stat"><span class="stat-l">nodes</span><span class="stat-v" id="h-nodes">0</span></div>
+    <div class="stat"><span class="stat-l">pulses</span><span class="stat-v" id="h-pulses">0</span></div>
+    <div class="stat"><span class="stat-l">arbiter</span><span class="stat-v" id="h-arb">0</span></div>
+    <div class="batt">
+      <div class="batt-bar"><div class="batt-fill" id="batt-fill" style="width:100%"></div></div>
+      <div class="batt-tip"></div>
+      <span id="batt-pct">--%</span>
+    </div>
+    <div class="heartbeat"></div>
+  </div>
+</div>
+
+<!-- Resonance panel -->
+<div id="res-panel">
+  <div class="res-title">Resonance Field</div>
+  <div id="res-bars"><span style="color:#1a3a20">awaiting pulse…</span></div>
+</div>
+
+<!-- Canvas -->
+<canvas id="canvas"></canvas>
+
+<!-- UI -->
+<div id="ui">
+  <div id="console">&gt; B.O.S.S. v0.5 — Somatic Governor<br>&gt; Soma is sovereign. Cortex is a guest.<br>&gt; All kernel physics run offline.</div>
+  <div id="input-bar">
+    <input id="pulse-input" placeholder="Inject intent pulse…" autocomplete="off"
+      onkeydown="if(event.key==='Enter'){firePulse();this.blur();setTimeout(()=>this.focus(),80)}">
+    <button id="pulse-btn" onclick="firePulse()">PULSE ⚡</button>
+  </div>
+</div>
+
+<!-- Grief overlay -->
+<div class="grief-overlay" id="grief-overlay">
+  <div class="grief-box">
+    ⚠ GRIEF PROTOCOL
+    <p>Diametrically opposed specialties detected.<br>Kernel suspended — manual recovery required.</p>
+    <button onclick="recover()">⟳ Recover Kernel</button>
+  </div>
+</div>
+
+<!-- Tooltip (desktop) -->
+<div id="tip"></div>
+
+<!-- PWA -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .catch(e => console.warn('SW:', e));
+}
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   B.O.S.S. KERNEL v0.5 — SOMATIC GOVERNOR
+   github.com/Dosage2AG/boss-kernel
+
+   ARCHITECTURAL LOCKS (do not modify without understanding why):
+
+   1. warmth × match — MULTIPLICATION, not addition.
+      Intent must gate thermal energy, not merely supplement it.
+      A warm but irrelevant node scores ~zero thermal regardless.
+
+   2. Elapsed-time decay: warmth *= exp(-decayRate * dt_seconds)
+      Not per-frame multiplication. Display-rate independent.
+
+   3. Arbiter is two-stage: delta gate THEN semantic dissonance.
+      Close scores + compatible specialties → no grief, top wins.
+      Close scores + opposed specialties → grief protocol fires.
+
+   4. vectorBoost is RELATIVE (mean-subtracted by cortex).
+      Defaults to 0. Kernel correct with or without cortex.
+
+   5. Soma is sovereign. All physics run in JS with no server dependency.
+   ══════════════════════════════════════════════════════════════════════ */
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const BASE_DECAY     = 0.05;
+const BOND_DECAY_K   = 0.6;
+const BOND_LOOKBACK  = 4;
+const GRIEF_PENALTY  = 0.4;
+const DISSONANCE_CUT = 0.55;
+const VECTOR_WEIGHT  = 2.0;
+let   confThreshold  = 1.5;
+
+// ── Biometrics ────────────────────────────────────────────────────────────────
+let systemVitals = { battery: 1.0, isLowPower: false, decayRate: BASE_DECAY };
+
+async function initBiometrics() {
+  if (!navigator.getBattery) return;
+  try {
+    const b = await navigator.getBattery();
+    const upd = () => {
+      systemVitals.battery    = b.level;
+      systemVitals.isLowPower = b.level < 0.2 && !b.charging;
+      systemVitals.decayRate  = systemVitals.isLowPower
+        ? BASE_DECAY * 0.4
+        : BASE_DECAY * (0.6 + b.level * 0.4);
+      const fill = document.getElementById('batt-fill');
+      fill.style.width      = (b.level * 100) + '%';
+      fill.style.background = b.level < 0.2 ? '#ff4444' : b.level < 0.5 ? '#ffcc00' : '#00ffcc';
+      document.getElementById('batt-pct').textContent = Math.round(b.level * 100) + '%';
+    };
+    upd();
+    b.addEventListener('levelchange',    upd);
+    b.addEventListener('chargingchange', upd);
+  } catch(_) {}
+}
+
+// ── Semantic similarity ───────────────────────────────────────────────────────
+// n-gram cosine + synonym boosting.
+// "health check" → VITALS scores ~0.82, not 0.1.
+// "retrieve records" → MEMORY scores high, not zero.
+// This is the topology layer. Do not replace with word-intersection.
+
+const SYNONYMS = {
+  health:   ['vitality','status','wellbeing','monitor','check','diagnostics','condition','battery','power'],
+  read:     ['retrieve','load','fetch','access','recall','get','find','open','search'],
+  who:      ['identity','name','about','describe','self','you','what'],
+  data:     ['records','files','storage','memory','information','info','database'],
+  think:    ['reason','analyze','analyse','process','evaluate','decide','infer','logic','intelligence'],
+  write:    ['generate','create','draft','compose','produce','make','build'],
+  help:     ['assist','support','aid','guide'],
+  food:     ['eat','hungry','nutrition','cook','recipe','meal','kitchen','hunger'],
+  remember: ['memorize','ingest','vault','keep','note','store'],
+};
+
+function ngramSim(a, b, n = 3) {
+  const clean  = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ');
+  const ngrams = s => {
+    const out = new Set(), c = clean(s);
+    for (let i = 0; i <= c.length - n; i++) out.add(c.slice(i, i + n));
+    c.split(/\s+/).filter(w => w.length >= 2).forEach(w => out.add(w));
+    return out;
+  };
+  const sa = ngrams(a), sb = ngrams(b);
+  const inter = [...sa].filter(x => sb.has(x)).length;
+  const denom = Math.sqrt(sa.size * sb.size);
+  return denom ? Math.min(1, inter / denom) : 0;
+}
+
+function semanticSim(a, b) {
+  const base = ngramSim(a, b);
+  let boost = 0;
+  const wa = a.toLowerCase().split(/\s+/);
+  const wb = b.toLowerCase().split(/\s+/);
+  for (const [root, syns] of Object.entries(SYNONYMS)) {
+    const inA = wa.some(w => w === root || syns.includes(w));
+    const inB = wb.some(w => w === root || syns.includes(w));
+    if (inA && inB) boost = Math.max(boost, 0.38);
+  }
+  return Math.min(1, base + boost);
+}
+
+// ── Memory vault ──────────────────────────────────────────────────────────────
+function vaultGet()  { return JSON.parse(localStorage.getItem('BOSS_VAULT') || '[]'); }
+function vaultSet(v) { localStorage.setItem('BOSS_VAULT', JSON.stringify(v)); }
+
+function vaultRemember(text) {
+  const vault = vaultGet();
+  if (vault.some(m => semanticSim(m.content, text) > 0.85)) return;
+  vault.unshift({ content: text, time: Date.now() });
+  if (vault.length > 200) vault.pop();
+  vaultSet(vault);
+  clog(`🧠 "${text.slice(0, 50)}"…`, 'log-mem');
+}
+
+function searchVault(intent) {
+  const vault = vaultGet();
+  if (!vault.length) return null;
+  let best = null, bestSim = 0;
+  vault.forEach(m => {
+    const s = semanticSim(intent, m.content);
+    if (s > bestSim) { bestSim = s; best = m; }
+  });
+  return bestSim > 0.3 ? { memory: best, sim: bestSim } : null;
+}
+
+// ── Node ──────────────────────────────────────────────────────────────────────
+class Node {
+  constructor(name, specialty, x, y, color, res = 1.0, isStatic = false) {
+    this.id         = Math.random().toString(36).slice(2, 5).toUpperCase();
+    this.name       = name.toUpperCase().slice(0, 10);
+    this.specialty  = specialty;
+    this.x = x; this.y = y; this.vx = 0; this.vy = 0;
+    this.color      = color;
+    this.warmth     = 0.1;
+    this.resonance  = res;
+    this.isStatic   = isStatic;
+    this.bonds      = {};
+    this.lastOutput = null;
+    this.lastT      = performance.now();
+    this.flashT     = 0;
+    this.lastVecBoost = 0;
+  }
+
+  update(now) {
+    if (!this.isStatic) {
+      const dt = (now - this.lastT) / 1000;
+      // Elapsed-time decay — correct across all display refresh rates
+      this.warmth *= Math.exp(-systemVitals.decayRate * dt);
+      if (this.warmth < 0.05) this.warmth = 0.05;
+    }
+    this.lastT = now;
+  }
+
+  score(intent, chain, allNodes, vectorBoost = 0) {
+    // LOCK: match multiplies warmth — intent gates thermal energy
+    const match        = semanticSim(intent, this.specialty);
+    const thermal      = this.warmth * match;
+
+    const phase        = Math.sin(2 * Math.PI * this.resonance);
+    const standingWave = this.resonance * (1 + 0.3 * phase);
+
+    let bondSignal = 0;
+    chain.slice(-BOND_LOOKBACK).reverse().forEach((pid, i) => {
+      const prev = allNodes.find(n => n.id === pid);
+      if (prev && prev.bonds[this.id] !== undefined)
+        bondSignal += prev.bonds[this.id] * Math.pow(BOND_DECAY_K, i);
+    });
+
+    this.lastVecBoost = vectorBoost;
+    const total = thermal + standingWave + (bondSignal * 2) + (vectorBoost * VECTOR_WEIGHT);
+    return { total, match, thermal, standingWave, bondSignal, vectorBoost };
+  }
+
+  ignite() {
+    this.warmth     = Math.min(this.warmth + 2.5, 10);
+    this.resonance += 0.01;
+    this.flashT     = performance.now();
+  }
+
+  grieve() {
+    this.resonance *= (1 - GRIEF_PENALTY);
+    this.warmth    *= 0.5;
+  }
+
+  toJSON() {
+    return {
+      id: this.id, name: this.name, specialty: this.specialty,
+      x: this.x, y: this.y, color: this.color,
+      resonance: this.resonance, isStatic: this.isStatic, bonds: this.bonds
+    };
+  }
+
+  draw(ctx, chain, now) {
+    const flashAlpha = this.flashT > 0 ? Math.max(0, 1 - (now - this.flashT) / 600) : 0;
+    const isActive   = chain.length && chain[chain.length - 1] === this.id;
+    const r          = 20 + this.resonance * 3 + this.warmth * 2;
+    const glow       = 10 + this.warmth * 22;
+
+    ctx.save();
+
+    // Warm halo
+    if (this.warmth > 0.15) {
+      const g = ctx.createRadialGradient(this.x, this.y, r * .3, this.x, this.y, r * 3.5);
+      g.addColorStop(0, this.color + '30'); g.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(this.x, this.y, r * 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.fill();
+    }
+
+    // Flash ripple on ignite (Gemini's kinetic feedback, preserved)
+    if (flashAlpha > 0) {
+      ctx.beginPath(); ctx.arc(this.x, this.y, r + flashAlpha * 50, 0, Math.PI * 2);
+      ctx.strokeStyle = this.color + Math.floor(flashAlpha * 180).toString(16).padStart(2, '0');
+      ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // Body
+    ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = this.color + Math.floor((0.12 + this.warmth * 0.18) * 255).toString(16).padStart(2, '0');
+    ctx.shadowBlur = glow; ctx.shadowColor = this.color;
+    ctx.fill();
+    ctx.strokeStyle = isActive ? '#ffffff' : this.color;
+    ctx.lineWidth = isActive ? 2.5 : 1.5; ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Vector boost ring
+    if (Math.abs(this.lastVecBoost) > 0.02) {
+      const alpha = Math.min(Math.abs(this.lastVecBoost) * 2, 0.7);
+      ctx.beginPath(); ctx.arc(this.x, this.y, r + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = this.lastVecBoost > 0
+        ? `rgba(170,136,255,${alpha})`
+        : `rgba(100,70,70,${alpha})`;
+      ctx.lineWidth = this.lastVecBoost > 0 ? 2 : 1;
+      ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    // Labels
+    ctx.fillStyle = '#fff';
+    ctx.font = `700 11px 'Orbitron', monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(this.name, this.x, this.y - 3);
+
+    ctx.font = `9px 'Share Tech Mono', monospace`;
+    ctx.fillStyle = this.color + 'aa';
+    ctx.fillText(`r=${this.resonance.toFixed(2)}`, this.x, this.y + 9);
+
+    ctx.restore();
+  }
+}
+
+// ── Kernel state ──────────────────────────────────────────────────────────────
+let nodes      = [];
+let chain      = [];
+let limpMode   = false;
+let pulseCount = 0;
+let arbCount   = 0;
+let sseSource  = null;
+
+// ── Arbiter — two-stage dissonance gate ───────────────────────────────────────
+function runArbiter(top, second, delta) {
+  arbCount++;
+  document.getElementById('h-arb').textContent = arbCount;
+  clog(`🔺 ARBITER Δ=${delta.toFixed(3)} | ${top.node.name} vs ${second.node.name}`, 'log-arbiter');
+
+  const sim        = semanticSim(top.node.specialty, second.node.specialty);
+  const dissonance = 1 - sim;
+
+  clog(`   sim=${sim.toFixed(3)} dissonance=${dissonance.toFixed(3)}`, 'log-arbiter');
+
+  if (dissonance > DISSONANCE_CUT) {
+    clog(`   ⚠ OPPOSED SPECIALTIES — Grief Protocol`, 'log-grief');
+    top.node.grieve(); second.node.grieve();
+    clog(`   💔 ${top.node.name} res→${top.node.resonance.toFixed(3)}`, 'log-grief');
+    clog(`   💔 ${second.node.name} res→${second.node.resonance.toFixed(3)}`, 'log-grief');
+    return null;
+  }
+  clog(`   ✅ Compatible — ${top.node.name} confirmed`, 'log-arbiter');
+  return top.node;
+}
+
+// ── Cortex bridge ─────────────────────────────────────────────────────────────
+function pcUrl() {
+  return `http://${localStorage.getItem('BOSS_PC_IP') || '192.168.1.5'}:5000`;
+}
+
+function setCortexStatus(s) {
+  const dot = document.getElementById('cx-dot');
+  dot.className = 'dot ' + (s === 'online' ? 'online' : s === 'cloud' ? 'cloud' : '');
+  const lbl = document.getElementById('cx-label');
+  lbl.textContent = s === 'online' ? 'cortex' : s === 'cloud' ? 'cloud' : 'cortex off';
+  lbl.style.color = s === 'online' ? '#00ffcc' : s === 'cloud' ? '#6699ff' : '#335544';
+}
+
+async function fetchVectorBoosts(intent) {
+  try {
+    const r = await fetch(`${pcUrl()}/resonate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent, specs: nodes.map(n => n.specialty) }),
+      signal: AbortSignal.timeout(2500)
+    });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    setCortexStatus('online');
+    return d.boosts || [];
+  } catch(_) { return []; }
+}
+
+async function queryPulse(intent, winnerName) {
+  try {
+    const r = await fetch(`${pcUrl()}/pulse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent, node: winnerName }),
+      signal: AbortSignal.timeout(2000)
+    });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    setCortexStatus('online');
+    return d.response;
+  } catch(_) { setCortexStatus('offline'); return null; }
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function connectSSE() {
+  if (sseSource) { sseSource.close(); sseSource = null; }
+  sseSource = new EventSource(`${pcUrl()}/stream`);
+  sseSource.onopen = () => {
+    document.getElementById('sse-dot').className = 'dot sse';
+    document.getElementById('sse-label').textContent = 'sse live';
+    clog('💜 SSE connected', 'log-sse');
+  };
+  sseSource.onmessage = e => {
+    const parts = e.data.split('|');
+    if (parts[0] === 'keepalive') return;
+    const [type, nodeName, msg] = parts;
+    if (type === 'pulse_event') {
+      clog(`🚨 PROACTIVE [${nodeName}]: ${msg}`, 'log-sse');
+      const t = nodes.find(n => n.name === nodeName.toUpperCase());
+      if (t) {
+        t.ignite();
+        const f = document.createElement('div'); f.className = 'sse-flash';
+        document.body.appendChild(f); setTimeout(() => f.remove(), 800);
+      }
+    }
+  };
+  sseSource.onerror = () => {
+    document.getElementById('sse-dot').className = 'dot';
+    document.getElementById('sse-label').textContent = 'sse off';
+  };
+}
+
+// ── Resonance panel ───────────────────────────────────────────────────────────
+function updateResPanel(scored, boosts) {
+  const panel = document.getElementById('res-bars');
+  if (!scored.length) { panel.innerHTML = '<span style="color:#1a3a20">no nodes</span>'; return; }
+  const maxT = Math.max(...scored.map(s => s.total), 0.01);
+  panel.innerHTML = scored.slice(0, 5).map((s, i) => {
+    const pct   = Math.max(0, (s.total / maxT) * 100).toFixed(1);
+    const boost = boosts[nodes.indexOf(s.node)] || 0;
+    const bCol  = boost > 0.01 ? '#aa88ff' : boost < -0.01 ? '#885566' : '#335544';
+    const fCol  = i === 0 ? '#00ffcc' : i === 1 ? '#66ffcc66' : '#335544';
+    return `<div class="res-row">
+      <span class="res-name" style="color:${s.node.color}88">${s.node.name}</span>
+      <div class="res-track"><div class="res-fill" style="width:${pct}%;background:${fCol}"></div></div>
+      <span class="res-val" style="color:${bCol}">${s.total.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── FIRE PULSE — complete pipeline ────────────────────────────────────────────
+async function firePulse() {
+  const el     = document.getElementById('pulse-input');
+  const intent = el.value.trim();
+  if (!intent) return;
+  if (limpMode) { clog('🩼 LIMP MODE — tap Recover', 'log-grief'); return; }
+  el.value = '';
+  pulseCount++;
+  document.getElementById('h-pulses').textContent = pulseCount;
+
+  clog(`⚡ "${intent}"`, 'log-pulse');
+
+  // Remember command
+  const words  = intent.toLowerCase().split(/\s+/);
+  const remIdx = words.findIndex(w => ['remember','memorize','note','store'].includes(w));
+  if (remIdx >= 0) {
+    const content = intent.split(/\s+/).slice(remIdx + 1).join(' ');
+    if (content) vaultRemember(content);
+    return;
+  }
+
+  if (!nodes.length) { clog('No nodes', 'log-sys'); return; }
+
+  // Vault recall
+  const memResult = searchVault(intent);
+  if (memResult)
+    clog(`🧠 Vault (${memResult.sim.toFixed(2)}): "${memResult.memory.content.slice(0,40)}"…`, 'log-mem');
+
+  // Vector boosts (relative, field-normalized — 0 when cortex offline)
+  const boosts = await fetchVectorBoosts(intent);
+
+  // Full kernel scoring
+  const scored = nodes
+    .map((n, i) => ({ node: n, ...n.score(intent, chain, nodes, boosts[i] || 0) }))
+    .sort((a, b) => b.total - a.total);
+
+  updateResPanel(scored, boosts);
+
+  const top    = scored[0];
+  const second = scored.length > 1 ? scored[1] : null;
+  const delta  = second ? top.total - second.total : Infinity;
+
+  clog(`   ${scored.slice(0,3).map(s => `${s.node.name}=${s.total.toFixed(2)}`).join(' | ')}`, 'log-sys');
+
+  let winner = top.node;
+
+  // Two-stage Arbiter — delta gate then semantic dissonance
+  if (second && delta < confThreshold) {
+    const result = runArbiter(top, second, delta);
+    if (result === null) {
+      limpMode = true;
+      document.getElementById('grief-overlay').classList.add('show');
+      return;
+    }
+    winner = result;
+  }
+
+  // Synaptic bond formation
+  if (chain.length && chain[chain.length - 1] !== winner.id) {
+    const prev = nodes.find(n => n.id === chain[chain.length - 1]);
+    if (prev) {
+      prev.bonds[winner.id] = (prev.bonds[winner.id] || 0) + 0.1;
+      clog(`   🔗 ${prev.name}→${winner.name}: ${prev.bonds[winner.id].toFixed(2)}`, 'log-bond');
+    }
+  }
+
+  chain.push(winner.id);
+  winner.ignite();
+  clog(`📡 ${winner.name} | freq=${top.total.toFixed(3)} Δ=${delta===Infinity?'∞':delta.toFixed(3)}`, 'log-win');
+
+  // Cortex response
+  const resp = await queryPulse(intent, winner.name);
+  if (resp) {
+    const t = resp.length > 90 ? resp.slice(0, 90) + '…' : resp;
+    clog(`🧬 [cortex→${winner.name}] ${t}`, 'log-win');
+    winner.lastOutput = resp;
+    vaultRemember(resp.slice(0, 80));
+  }
+
+  saveKernel();
+}
+
+// ── Recovery ──────────────────────────────────────────────────────────────────
+function recover() {
+  nodes.forEach(n => n.resonance = Math.max(n.resonance, 0.5));
+  limpMode = false;
+  document.getElementById('grief-overlay').classList.remove('show');
+  clog('💚 Recovered', 'log-sys');
+  saveKernel();
+}
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function saveKernel() {
+  localStorage.setItem('BOSS_KERNEL', JSON.stringify({
+    nodes: nodes.map(n => n.toJSON()), chain: chain.slice(-50), saved: Date.now()
+  }));
+}
+
+function loadKernel() {
+  const raw = localStorage.getItem('BOSS_KERNEL');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    nodes = s.nodes.map(d => {
+      const n = new Node(d.name, d.specialty, d.x, d.y, d.color, d.resonance, d.isStatic);
+      n.id = d.id; n.bonds = d.bonds || {}; return n;
+    });
+    chain = s.chain || [];
+    clog(`📀 Restored ${nodes.length} nodes`, 'log-sys');
+    return true;
+  } catch(_) { return false; }
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function drawGrid() {
+  ctx.fillStyle = '#0f2a1833';
+  for (let x = 0; x < canvas.width; x += 60)
+    for (let y = 30; y < canvas.height; y += 60) {
+      ctx.beginPath(); ctx.arc(x, y, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+function drawBonds() {
+  nodes.forEach(n => {
+    Object.entries(n.bonds).forEach(([tid, s]) => {
+      const t = nodes.find(x => x.id === tid); if (!t) return;
+      ctx.save();
+      ctx.strokeStyle = n.color + Math.floor(Math.min(s * 110, 180)).toString(16).padStart(2,'0');
+      ctx.lineWidth   = Math.min(s * 2, 3);
+      ctx.setLineDash([4, 8]);
+      ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+      ctx.restore();
+    });
+  });
+}
+
+function applyForces() {
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  nodes.forEach(n => {
+    n.vx += (cx - n.x) * 0.0006;
+    n.vy += (cy - n.y) * 0.0006;
+    nodes.forEach(m => {
+      if (m === n) return;
+      const dx = n.x - m.x, dy = n.y - m.y;
+      const d  = Math.sqrt(dx*dx + dy*dy) || 1;
+      const f  = 3200 / (d*d);
+      n.vx += (dx/d)*f; n.vy += (dy/d)*f;
+    });
+    Object.entries(n.bonds).forEach(([tid, s]) => {
+      const t = nodes.find(x => x.id === tid); if (!t) return;
+      const dx = t.x - n.x, dy = t.y - n.y;
+      const d  = Math.sqrt(dx*dx + dy*dy) || 1;
+      n.vx += (dx/d) * Math.min(s * .5, 0.8);
+      n.vy += (dy/d) * Math.min(s * .5, 0.8);
+    });
+    n.vx *= 0.84; n.vy *= 0.84;
+    const pad = 60, topPad = 58;
+    n.x = Math.max(pad, Math.min(n.x + n.vx, canvas.width  - pad));
+    n.y = Math.max(topPad, Math.min(n.y + n.vy, canvas.height - 165));
+  });
+}
+
+// Touch drag
+let touching = null, tox = 0, toy = 0;
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t   = e.touches[0];
+  const hit = nodes.find(n => Math.hypot(n.x - t.clientX, n.y - t.clientY) < 48);
+  if (hit) { touching = hit; tox = t.clientX - hit.x; toy = t.clientY - hit.y; }
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!touching) return;
+  const t = e.touches[0];
+  touching.x = t.clientX - tox; touching.y = t.clientY - toy;
+  touching.vx = 0; touching.vy = 0;
+}, { passive: false });
+canvas.addEventListener('touchend', () => {
+  if (touching) { saveKernel(); touching = null; }
+});
+
+// Mouse drag (desktop)
+let dragging = null, dox = 0, doy = 0;
+canvas.addEventListener('mousedown', e => {
+  const hit = nodes.find(n => Math.hypot(n.x - e.clientX, n.y - e.clientY) < 40);
+  if (hit) { dragging = hit; dox = e.clientX - hit.x; doy = e.clientY - hit.y; }
+});
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  dragging.x = e.clientX - dox; dragging.y = e.clientY - doy;
+  dragging.vx = 0; dragging.vy = 0;
+});
+canvas.addEventListener('mouseup', () => { if (dragging) { saveKernel(); dragging = null; } });
+
+// Tooltip
+const tip = document.getElementById('tip');
+canvas.addEventListener('mousemove', e => {
+  if (dragging) return;
+  const hit = nodes.find(n => Math.hypot(n.x - e.clientX, n.y - e.clientY) < 40);
+  if (hit) {
+    const vb = hit.lastVecBoost || 0;
+    tip.innerHTML = `<span style="color:${hit.color}">${hit.name}</span><br>
+      <span style="color:#335544">${hit.specialty}</span><br>
+      warmth <span style="color:#ff9944">${hit.warmth.toFixed(3)}</span> &nbsp;
+      res <span style="color:#00ffcc">${hit.resonance.toFixed(3)}</span><br>
+      vec <span style="color:${vb>0?'#aa88ff':'#885566'}">${vb>=0?'+':''}${vb.toFixed(3)}</span>`;
+    tip.style.left = (e.clientX + 12) + 'px';
+    tip.style.top  = (e.clientY - 8)  + 'px';
+    tip.classList.add('show');
+  } else tip.classList.remove('show');
+});
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function clog(msg, cls = 'log-sys') {
+  const con = document.getElementById('console');
+  const t   = new Date().toLocaleTimeString('en', { hour12: false });
+  con.innerHTML += `<br><span class="${cls}"><span style="color:#1a3a28">${t}</span> ${msg}</span>`;
+  con.scrollTop  = con.scrollHeight;
+}
+
+function updateHeader() {
+  document.getElementById('h-nodes').textContent = nodes.length;
+}
+
+// ── Main loop ─────────────────────────────────────────────────────────────────
+function loop(now) {
+  ctx.fillStyle = '#050a06';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  applyForces();
+  drawBonds();
+  nodes.forEach(n => { n.update(now); n.draw(ctx, chain, now); });
+  updateHeader();
+  requestAnimationFrame(loop);
+}
+
+// ── Seed ──────────────────────────────────────────────────────────────────────
+function seed() {
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r  = Math.min(canvas.width, canvas.height) * 0.28;
+  [
+    { name:'VITALS',  spec:'health battery power status diagnostics wellbeing condition', color:'#00ffcc', res:2.0 },
+    { name:'KITCHEN', spec:'food recipes hunger nutrition cooking meal eat',               color:'#ffaa00', res:1.3 },
+    { name:'AI',      spec:'think reason intelligence logic language model analyse',       color:'#cc00ff', res:1.5 },
+    { name:'MEMORY',  spec:'recall retrieve stored information data records remember',     color:'#66aaff', res:1.6 },
+    { name:'ID',      spec:'who identity name boss self describe about',                  color:'#ff66aa', res:1.8, isStatic:true },
+  ].forEach((d, i) => {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    nodes.push(new Node(
+      d.name, d.spec,
+      cx + r * Math.cos(angle), cy + r * Math.sin(angle),
+      d.color, d.res, d.isStatic || false
+    ));
+  });
+  clog('✦ 5 nodes seeded', 'log-sys');
+  clog('💡 "health check" · "I am hungry" · "who are you" · "remember [text]"', 'log-sys');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+if (!loadKernel()) seed();
+initBiometrics();
+requestAnimationFrame(loop);
+setInterval(() => { if (nodes.length) saveKernel(); }, 30000);
+</script>
+</body>
+</html>
