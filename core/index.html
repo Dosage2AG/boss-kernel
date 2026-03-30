@@ -595,9 +595,19 @@ function runArbiter(top, second, delta) {
 
 // ── Cortex bridge ─────────────────────────────────────────────────────────────
 function pcUrl() {
-  return `http://${localStorage.getItem('BOSS_PC_IP') || 'https://potential-waddle-jrgqg4q5657cqw4g-5000.app.github.dev'}:5000`;
+  // We prioritize the Codespace URL and ensure it uses HTTPS
+  const cloudUrl = 'https://potential-waddle-jrgqg4q5657cqw4g-5000.app.github.dev';
+  
+  // This logic checks if you've saved a custom IP, otherwise uses the cloud URL
+  let base = localStorage.getItem('BOSS_PC_IP') || cloudUrl;
+  
+  // If it's a local IP (like 192...), it needs http. If it's your cloud URL, it's already https.
+  if (base.includes('192.168')) {
+      return `http://${base}:5000`;
+  }
+  
+  return base; 
 }
-
 function setCortexStatus(s) {
   const dot = document.getElementById('cx-dot');
   dot.className = 'dot ' + (s === 'online' ? 'online' : s === 'cloud' ? 'cloud' : '');
