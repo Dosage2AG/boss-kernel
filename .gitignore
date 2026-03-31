@@ -1,58 +1,21 @@
-# --- NZT-DEV B.O.S.S. KERNEL IGNORE LIST ---
+# B.O.S.S. Private — Trading Intelligence (DO NOT PUSH)
+core/universe.html
+core/boss-engine.js
+core/futures-api.js
+core/visual-fx.js
+core/trading-ui.html
+core/markets.js
+core/market-bridge.js
+core/narrator.js
+core/news-scanner.js
+core/trade-executor.js
+core/resonance-field.js
+trading/
+POLYMARKET_OBSERVER.md
+BOSS_ANIMA_MAPPING.md
 
-# Python Environment & Dependencies
-venv/
-env/
-ENV/
-bin/
-lib/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Python Bytecode & Cache
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-.mypy_cache/
-
-# B.O.S.S. Local State & Private Memory
-# (Prevents your personal kernel saves from being public)
-BOSS_KERNEL.json
-BOSS_VAULT.json
-*.log
-URGENT_ACTION.txt
-
-# Environment / Secrets
-.env
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Operating System Files
+# System
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Editor Specific
-.vscode/
-.idea/
-*.swp
-*.swo
+node_modules/
+*.log
+/tmp/
