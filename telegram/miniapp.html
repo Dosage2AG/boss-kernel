@@ -1,0 +1,387 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>B.O.S.S. Universe</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #0a0a0f);
+    --bg2: var(--tg-theme-secondary-bg-color, #111118);
+    --text: var(--tg-theme-text-color, #e8e8f0);
+    --hint: var(--tg-theme-hint-color, #888899);
+    --link: var(--tg-theme-link-color, #7b68ee);
+    --btn: var(--tg-theme-button-color, #7b68ee);
+    --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --accent: #00d4ff;
+    --green: #00ff9d;
+    --red: #ff4466;
+    --gold: #ffd700;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:14px; min-height:100vh; overflow-x:hidden; }
+  .nav { display:flex; background:var(--bg2); border-top:1px solid #222; position:fixed; bottom:0; left:0; right:0; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+  .nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 4px 8px; cursor:pointer; color:var(--hint); font-size:10px; transition:color .2s; border:none; background:none; }
+  .nav-btn.active { color:var(--btn); }
+  .nav-btn svg { width:22px; height:22px; }
+  .page { display:none; padding:16px 16px 80px; animation:fadeIn .2s; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  .card { background:var(--bg2); border:1px solid #222; border-radius:16px; padding:16px; margin-bottom:12px; }
+  .card-title { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--hint); margin-bottom:12px; }
+  .header { text-align:center; padding:24px 0 16px; }
+  .header h1 { font-size:22px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--btn)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header p { color:var(--hint); font-size:12px; margin-top:4px; }
+  .warmth-wrap { display:flex; justify-content:center; margin:8px 0 16px; }
+  .warmth-ring { position:relative; width:120px; height:120px; }
+  .warmth-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .warmth-ring-val { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .warmth-ring-val .num { font-size:26px; font-weight:700; color:var(--accent); }
+  .warmth-ring-val .lbl { font-size:10px; color:var(--hint); }
+  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .metric { background:var(--bg2); border:1px solid #222; border-radius:12px; padding:12px 8px; text-align:center; }
+  .metric .val { font-size:16px; font-weight:700; }
+  .metric .lbl { font-size:10px; color:var(--hint); margin-top:2px; }
+  .signal { display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg2); border:1px solid #222; border-radius:12px; margin-bottom:8px; }
+  .signal-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .signal-icon.long { background:rgba(0,255,157,.12); }
+  .signal-icon.short { background:rgba(255,68,102,.12); }
+  .signal-body { flex:1; min-width:0; }
+  .signal-top { display:flex; justify-content:space-between; align-items:center; }
+  .signal-pair { font-weight:600; font-size:13px; }
+  .signal-conf { font-size:11px; font-weight:600; }
+  .signal-conf.high { color:var(--green); }
+  .signal-conf.mid { color:var(--gold); }
+  .signal-sub { color:var(--hint); font-size:11px; margin-top:2px; }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; }
+  .badge.long { background:rgba(0,255,157,.15); color:var(--green); }
+  .badge.short { background:rgba(255,68,102,.15); color:var(--red); }
+  .mrow { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #1a1a22; }
+  .mrow:last-child { border-bottom:none; }
+  .mrow-sym { font-weight:600; min-width:80px; }
+  .mrow-price { flex:1; text-align:right; }
+  .mrow-chg { min-width:64px; text-align:right; font-size:12px; font-weight:600; padding:3px 8px; border-radius:8px; }
+  .mrow-chg.up { color:var(--green); background:rgba(0,255,157,.1); }
+  .mrow-chg.dn { color:var(--red); background:rgba(255,68,102,.1); }
+  .tier-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .tier-card { background:var(--bg2); border:2px solid #222; border-radius:14px; padding:14px 12px; cursor:pointer; transition:border-color .2s,transform .15s; }
+  .tier-card:hover { transform:translateY(-2px); }
+  .tier-card.active { border-color:var(--btn); }
+  .tier-name { font-weight:700; font-size:13px; }
+  .tier-price { font-size:11px; color:var(--hint); margin:4px 0; }
+  .tier-feat { font-size:11px; color:var(--hint); line-height:1.5; }
+  .tier-card.strategist { border-color:rgba(255,215,0,.3); }
+  .tier-card.strategist .tier-name { color:var(--gold); }
+  .tier-card.boss { grid-column:1/-1; border-color:rgba(0,212,255,.3); background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(123,104,238,.05)); }
+  .tier-card.boss .tier-name { color:var(--accent); font-size:15px; }
+  .wallet-box { display:flex; align-items:center; gap:10px; padding:12px; background:rgba(123,104,238,.1); border:1px solid rgba(123,104,238,.3); border-radius:12px; margin-bottom:16px; }
+  .wallet-addr { font-size:12px; font-family:monospace; color:var(--link); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wallet-dot { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border-radius:14px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:opacity .2s,transform .1s; }
+  .btn:active { transform:scale(.98); }
+  .btn-primary { background:var(--btn); color:var(--btn-text); }
+  .btn-secondary { background:var(--bg2); color:var(--text); border:1px solid #333; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; align-items:flex-end; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg2); border-radius:24px 24px 0 0; padding:24px 20px; padding-bottom:calc(24px + env(safe-area-inset-bottom)); width:100%; max-height:80vh; overflow-y:auto; animation:slideUp .25s; }
+  @keyframes slideUp { from { transform:translateY(100%); } to { transform:none; } }
+  .modal-handle { width:36px; height:4px; background:#444; border-radius:2px; margin:0 auto 20px; }
+  .modal-title { font-size:18px; font-weight:700; margin-bottom:8px; }
+  .modal-sub { color:var(--hint); font-size:13px; margin-bottom:20px; }
+  .pay-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #222; font-size:13px; }
+  .pay-row:last-of-type { border-bottom:none; }
+  .pay-row strong { color:var(--accent); }
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-80px); background:#1a1a2e; border:1px solid #333; border-radius:12px; padding:10px 18px; font-size:13px; z-index:999; transition:transform .3s; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .section-title { font-size:16px; font-weight:700; margin-bottom:12px; }
+  .dot-live { width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+</style>
+</head>
+<body>
+
+<div id="pg-home" class="page active">
+  <div class="header">
+    <h1>B.O.S.S. Universe</h1>
+    <p><span class="dot-live"></span> Biological Trading Intelligence</p>
+  </div>
+  <div class="warmth-wrap">
+    <div class="warmth-ring">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1a2e" stroke-width="10"/>
+        <circle id="warmth-arc" cx="60" cy="60" r="52" fill="none" stroke="url(#wg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="98"/>
+        <defs><linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7b68ee"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs>
+      </svg>
+      <div class="warmth-ring-val"><span class="num" id="warmth-val">70</span><span class="lbl">WARMTH</span></div>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="val" id="m-signals">—</div><div class="lbl">Signals</div></div>
+    <div class="metric"><div class="val" style="color:var(--green)" id="m-wr">68%</div><div class="lbl">Win Rate</div></div>
+    <div class="metric"><div class="val" style="color:var(--accent)" id="m-edge">+5.2%</div><div class="lbl">Avg Edge</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">System Status</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--hint)">Engine</span><span style="color:var(--green)">● Active</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--hint)">Kelly Sizer</span><span style="color:var(--green)">● Quarter-Kelly</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--hint)">Brier Score</span><span style="color:var(--accent)" id="brier-val">0.18</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--hint)">Drawdown</span><span style="color:var(--green)">-1.4%</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="pg-markets" class="page">
+  <div class="section-title">Markets <span class="dot-live" style="margin-left:6px"></span></div>
+  <div class="card">
+    <div class="card-title">Crypto (demo data)</div>
+    <div id="market-list">
+      <div class="mrow"><span class="mrow-sym">BTC/USDT</span><span class="mrow-price" id="p-btc">$84,210</span><span class="mrow-chg up" id="c-btc">+2.3%</span></div>
+      <div class="mrow"><span class="mrow-sym">ETH/USDT</span><span class="mrow-price" id="p-eth">$1,594</span><span class="mrow-chg dn" id="c-eth">-0.8%</span></div>
+      <div class="mrow"><span class="mrow-sym">SOL/USDT</span><span class="mrow-price" id="p-sol">$133</span><span class="mrow-chg up" id="c-sol">+4.1%</span></div>
+      <div class="mrow"><span class="mrow-sym">TON/USDT</span><span class="mrow-price" id="p-ton">$3.18</span><span class="mrow-chg up" id="c-ton">+1.2%</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Prediction Markets</div>
+    <div class="mrow"><span class="mrow-sym" style="font-size:12px;min-width:auto;flex:1">Fed Rate Cut Q3?</span><span class="mrow-chg up" style="min-width:48px">72%</span></div>
+    <div class="mrow"><span class="mrow-sym" style="font-size:12px;min-width:auto;flex:1">BTC &gt; $100k EOY?</span><span class="mrow-chg up" style="min-width:48px">61%</span></div>
+    <div class="mrow"><span class="mrow-sym" style="font-size:12px;min-width:auto;flex:1">ETH ETF Staking OK?</span><span class="mrow-chg dn" style="min-width:48px">38%</span></div>
+  </div>
+</div>
+
+<div id="pg-signals" class="page">
+  <div class="section-title">Signals</div>
+  <div id="signal-list"></div>
+  <div style="text-align:center;color:var(--hint);font-size:12px;padding:8px 0">Refreshes every 30s · Edge &gt; 4% only · Quarter-Kelly sized</div>
+</div>
+
+<div id="pg-account" class="page">
+  <div class="section-title">Account</div>
+  <div id="wallet-connected" style="display:none">
+    <div class="wallet-box"><div class="wallet-dot"></div><span class="wallet-addr" id="wallet-addr-display">—</span></div>
+  </div>
+  <div id="wallet-disconnected" style="margin-bottom:16px">
+    <button class="btn btn-secondary" onclick="connectWallet()">💎 Connect TON Wallet</button>
+  </div>
+  <div class="section-title" style="margin-top:8px">Choose Tier</div>
+  <div class="tier-grid">
+    <div class="tier-card active" id="tier-free" onclick="selectTier('free')">
+      <div class="tier-name">🌱 Explorer</div><div class="tier-price">Free forever</div>
+      <div class="tier-feat">3 signals/day<br>Basic charts</div>
+    </div>
+    <div class="tier-card" id="tier-trader" onclick="selectTier('trader')">
+      <div class="tier-name">⚡ Trader</div><div class="tier-price">16 TON / mo</div>
+      <div class="tier-feat">Unlimited signals<br>Kelly sizing</div>
+    </div>
+    <div class="tier-card strategist" id="tier-strategist" onclick="selectTier('strategist')">
+      <div class="tier-name">🎯 Strategist</div><div class="tier-price">50 TON / mo</div>
+      <div class="tier-feat">Multi-AI consensus<br>All markets</div>
+    </div>
+    <div class="tier-card boss" id="tier-boss" onclick="selectTier('boss')">
+      <div class="tier-name">👁 B.O.S.S.</div><div class="tier-price">200 TON / mo</div>
+      <div class="tier-feat">Full biological intelligence · Resonance field · Live execution</div>
+    </div>
+  </div>
+  <div id="current-tier-info" style="text-align:center;color:var(--hint);font-size:12px;margin-top:8px"></div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" id="nav-home" onclick="showTab('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </button>
+  <button class="nav-btn" id="nav-markets" onclick="showTab('markets')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Markets
+  </button>
+  <button class="nav-btn" id="nav-signals" onclick="showTab('signals')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Signals
+  </button>
+  <button class="nav-btn" id="nav-account" onclick="showTab('account')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Account
+  </button>
+</nav>
+
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="pay-title">Upgrade</div>
+    <div class="modal-sub" id="pay-sub">Pay with TON wallet</div>
+    <div class="pay-row"><span>Amount</span><strong id="pay-amount">—</strong></div>
+    <div class="pay-row"><span>Duration</span><span>30 days</span></div>
+    <div class="pay-row"><span>To</span><span style="font-size:11px;font-family:monospace;color:var(--hint)" id="pay-dest">—</span></div>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="confirmPayment()">Confirm Payment</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// Security: escape all untrusted output
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── Config ──────────────────────────────────────────────────────────────────
+// Set REVENUE_WALLET to your dedicated TON receiving address (starts with UQ or EQ).
+// This is a PUBLIC receiving address — safe to include. Never put your private key here.
+var REVENUE_WALLET = 'YOUR_BOSS_REVENUE_WALLET_HERE';
+var TIER_PRICES = {free:0, trader:16, strategist:50, boss:200};
+var TIER_NAMES  = {free:'🌱 Explorer', trader:'⚡ Trader', strategist:'🎯 Strategist', boss:'👁 B.O.S.S.'};
+
+// ── Telegram ─────────────────────────────────────────────────────────────────
+var tg = window.Telegram && window.Telegram.WebApp;
+if(tg){tg.ready();tg.expand();}
+function haptic(t){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(t||'light');}catch(e){}}
+
+// ── TON Connect ───────────────────────────────────────────────────────────────
+var tonUI=null, walletAddr=null, pendingTier=null;
+function initTonConnect(){
+  try{
+    tonUI=new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl:'https://dosage2ag.github.io/boss-kernel/telegram/tonconnect-manifest.json',
+      buttonRootId:null
+    });
+    tonUI.onStatusChange(function(w){
+      if(w){
+        walletAddr=w.account.address;
+        var s=walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
+        document.getElementById('wallet-addr-display').textContent=s;
+        document.getElementById('wallet-connected').style.display='flex';
+        document.getElementById('wallet-disconnected').style.display='none';
+        var saved=localStorage.getItem('boss_tier_'+walletAddr);
+        if(saved)activateTier(saved,true);
+        if(pendingTier){var t=pendingTier;pendingTier=null;openPayModal(t);}
+      }else{
+        walletAddr=null;
+        document.getElementById('wallet-connected').style.display='none';
+        document.getElementById('wallet-disconnected').style.display='block';
+      }
+    });
+  }catch(e){console.warn('TON Connect:',e);}
+}
+function connectWallet(){haptic('medium');if(tonUI)tonUI.openModal();else showToast('Wallet SDK loading...');}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showTab(tab){
+  haptic();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('pg-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+}
+
+// ── Signals (demo: EMA crossover simulation) ──────────────────────────────────
+var PAIRS=['BTC/USDT','ETH/USDT','SOL/USDT','TON/USDT','BNB/USDT'];
+var signals=[];
+function genSignals(){
+  var warmth=55+Math.random()*40;
+  document.getElementById('warmth-val').textContent=Math.round(warmth);
+  var offset=327-(warmth/100)*327;
+  document.getElementById('warmth-arc').setAttribute('stroke-dashoffset',offset.toFixed(1));
+  signals=[];
+  PAIRS.forEach(function(pair){
+    var p=0.48+Math.random()*0.34;
+    var pm=0.45+Math.random()*0.30;
+    var edge=p-pm;
+    if(Math.abs(edge)<0.04)return;
+    var b=1.8+Math.random();
+    var q=1-p;
+    var kelly=Math.max(0,(p*b-q)/b)*0.25;
+    signals.push({pair:pair,dir:p>0.5?'long':'short',conf:Math.round(p*100),
+      edge:(Math.abs(edge)*100).toFixed(1),kelly:Math.round(kelly*100),
+      ev:((p*b-q)*100).toFixed(1)});
+  });
+  signals.sort(function(a,b){return b.conf-a.conf;});
+  document.getElementById('m-signals').textContent=signals.length;
+  renderSignals();
+}
+function renderSignals(){
+  var el=document.getElementById('signal-list');
+  if(\!signals.length){el.innerHTML='<div style="text-align:center;color:var(--hint);padding:40px 0">No signals above threshold right now</div>';return;}
+  el.innerHTML=signals.map(function(s){
+    var cl=s.conf>=70?'high':'mid';
+    return '<div class="signal"><div class="signal-icon '+esc(s.dir)+'">'+(s.dir==='long'?'⚡':'🔻')+'</div>'+
+      '<div class="signal-body"><div class="signal-top"><span class="signal-pair">'+esc(s.pair)+'</span>'+
+      '<span class="signal-conf '+cl+'">'+esc(s.conf)+'% conf</span></div>'+
+      '<div class="signal-sub"><span class="badge '+esc(s.dir)+'">'+(s.dir==='long'?'↑ LONG':'↓ SHORT')+'</span> '+
+      'Edge: +'+esc(s.edge)+'% · Kelly: '+esc(s.kelly)+'% · EV: +'+esc(s.ev)+'%</div></div></div>';
+  }).join('');
+}
+
+// ── Markets (simulated drift) ─────────────────────────────────────────────────
+var BASE={btc:84210,eth:1594,sol:133,ton:3.18};
+var DRIFT={btc:0,eth:0,sol:0,ton:0};
+function tickMarkets(){
+  ['btc','eth','sol','ton'].forEach(function(s){
+    DRIFT[s]+=(Math.random()-0.495)*0.002;
+    var price=BASE[s]*(1+DRIFT[s]);
+    var pct=(DRIFT[s]*100).toFixed(2);
+    var up=DRIFT[s]>=0;
+    var pe=document.getElementById('p-'+s);
+    var ce=document.getElementById('c-'+s);
+    if(\!pe)return;
+    pe.textContent=s==='btc'?'$'+Math.round(price).toLocaleString():s==='ton'?'$'+price.toFixed(3):'$'+Math.round(price).toLocaleString();
+    ce.textContent=(up?'+':'')+pct+'%';
+    ce.className='mrow-chg '+(up?'up':'dn');
+  });
+}
+
+// ── Tiers ─────────────────────────────────────────────────────────────────────
+var currentTier='free';
+function selectTier(tier){
+  haptic('medium');
+  if(tier==='free'){activateTier('free',false);return;}
+  if(\!walletAddr){showToast('Connect your TON wallet first');pendingTier=tier;connectWallet();return;}
+  openPayModal(tier);
+}
+function openPayModal(tier){
+  document.getElementById('pay-title').textContent='Upgrade to '+TIER_NAMES[tier];
+  document.getElementById('pay-sub').textContent='30-day access via TON payment';
+  document.getElementById('pay-amount').textContent=TIER_PRICES[tier]+' TON';
+  var dest=REVENUE_WALLET\!=='YOUR_BOSS_REVENUE_WALLET_HERE'
+    ?REVENUE_WALLET.slice(0,8)+'...'+REVENUE_WALLET.slice(-6):'[wallet not configured]';
+  document.getElementById('pay-dest').textContent=dest;
+  pendingTier=tier;
+  document.getElementById('pay-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('pay-modal').classList.remove('open');pendingTier=null;}
+function confirmPayment(){
+  haptic('heavy');
+  if(\!tonUI||\!walletAddr||\!pendingTier){showToast('Connect wallet first');return;}
+  if(REVENUE_WALLET==='YOUR_BOSS_REVENUE_WALLET_HERE'){showToast('Revenue wallet not set up yet');closeModal();return;}
+  var nano=String(TIER_PRICES[pendingTier]*1e9);
+  tonUI.sendTransaction({validUntil:Math.floor(Date.now()/1000)+360,
+    messages:[{address:REVENUE_WALLET,amount:nano,payload:btoa('boss_tier_'+pendingTier)}]
+  }).then(function(){activateTier(pendingTier,false);closeModal();})
+    .catch(function(e){if(e&&e.message\!=='User rejected the transaction')showToast('Payment failed');closeModal();});
+}
+function activateTier(tier,silent){
+  currentTier=tier;
+  if(walletAddr)localStorage.setItem('boss_tier_'+walletAddr,tier);
+  document.querySelectorAll('.tier-card').forEach(function(c){c.classList.remove('active');});
+  var el=document.getElementById('tier-'+tier);
+  if(el)el.classList.add('active');
+  document.getElementById('current-tier-info').textContent='Active: '+(TIER_NAMES[tier]||tier);
+  if(\!silent){showToast('✅ '+(TIER_NAMES[tier]||tier)+' activated');haptic('heavy');}
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg){
+  var el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2800);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+initTonConnect();
+genSignals();
+tickMarkets();
+setInterval(genSignals,30000);
+setInterval(tickMarkets,3000);
+</script>
+</body>
+</html>

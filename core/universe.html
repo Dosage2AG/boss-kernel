@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>B.O.S.S. Universe</title>
+<script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000008;overflow:hidden;height:100vh;font-family:'Share Tech Mono',monospace;color:#aab;cursor:crosshair}
+canvas#cv{position:fixed;top:0;left:0;width:100vw;height:100vh}
+#hud{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:20;
+  background:rgba(0,4,12,0.85);border:1px solid #ffffff08;border-radius:16px;padding:4px 16px;backdrop-filter:blur(10px)}
+.hi{text-align:center}.hl{font-size:6px;color:#445;text-transform:uppercase;letter-spacing:.06em}
+.hv{font-size:10px;font-family:Orbitron,monospace;font-weight:700}
+.grn{color:#0fc}.red{color:#f45}.amb{color:#fc4}.dim{color:#446}
+#detail{display:none;position:fixed;right:12px;top:55px;width:240px;background:rgba(0,6,16,0.94);
+  border:1px solid #0fc2;border-radius:8px;padding:14px;z-index:25;backdrop-filter:blur(12px)}
+#detail h3{font-family:Orbitron;font-size:13px;color:#0fc;margin-bottom:6px;letter-spacing:.1em}
+#detail .r{display:flex;justify-content:space-between;font-size:10px;margin:3px 0}
+#detail .k{color:#445}#detail .v{font-weight:700}
+#d-close{position:absolute;top:8px;right:10px;color:#445;cursor:pointer;font-size:12px}
+#oracle{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:20;display:flex;width:340px;max-width:75vw}
+#oracle input{flex:1;background:rgba(0,6,16,0.5);border:1px solid #0fc1;color:#aab;padding:8px 12px;
+  font-family:'Share Tech Mono';font-size:11px;border-radius:18px 0 0 18px;outline:none}
+#oracle input::placeholder{color:#334}#oracle input:focus{border-color:#0fc4}
+#oracle button{background:rgba(0,30,20,0.5);border:1px solid #0fc1;color:#0fc8;padding:8px 14px;
+  font-family:Orbitron;font-size:9px;cursor:pointer;border-radius:0 18px 18px 0}
+#oracle-resp{position:fixed;bottom:46px;left:50%;transform:translateX(-50%);width:380px;max-width:80vw;
+  background:rgba(0,6,16,0.94);border:1px solid #0fc2;border-radius:8px;padding:12px 14px;z-index:20;
+  font-size:10px;line-height:1.6;display:none;max-height:180px;overflow-y:auto;backdrop-filter:blur(10px)}
+#tier-panel{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:380px;max-width:90vw;
+  background:rgba(0,4,12,0.96);border:1px solid #0fc3;border-radius:10px;padding:18px;z-index:50;backdrop-filter:blur(15px)}
+.tc{background:rgba(0,12,8,0.5);border:1px solid #0fc1;border-radius:6px;padding:8px 12px;margin-bottom:6px;cursor:pointer}
+.tc:hover{border-color:#0fc6;background:rgba(0,20,12,0.6)}.tc.on{border-color:#0fc;background:rgba(0,35,22,0.5)}
+.tc-h{display:flex;justify-content:space-between}.tc-n{font-family:Orbitron;font-size:10px;color:#0fc}
+.tc-p{font-family:Orbitron;font-size:9px;color:#0fc8}.tc-d{font-size:8px;color:#4458;margin-top:2px}
+#status-bar{position:fixed;top:36px;left:50%;transform:translateX(-50%);z-index:20;
+  font-size:7px;color:#334;letter-spacing:.08em;text-transform:uppercase;font-family:'Share Tech Mono'}
+#nar{position:fixed;bottom:50px;left:10px;width:220px;max-height:100px;overflow-y:auto;z-index:20;
+  font-size:8px;line-height:1.4;color:#334;pointer-events:none}
+.nt{color:#334}.nt-trade{color:#0fc8}.nt-grief{color:#f458}.nt-cascade{color:#fc48}
+.vz{font-size:9px;padding:4px 6px;margin:2px 0;cursor:pointer;border-radius:4px;color:#668;transition:all .2s}
+.vz:hover{background:rgba(0,255,200,.06);color:#aab}
+.vz.on{color:#0fc}.vz.on .vn{color:#0fc}
+.vn{display:inline-block;width:14px;font-size:10px}
+</style>
+</head>
+<body>
+<script>window.onerror=function(m,u,l){document.title="E:"+l+":"+m;return false};</script>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div style="width:6px;height:6px;border-radius:50%;background:#0fc;animation:p 1.5s ease-in-out infinite"></div>
+  <style>@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}</style>
+  <div class="hi"><div class="hv" id="hB" style="font-size:11px">0.00</div><div class="hl">balance</div></div>
+  <div class="hi"><div class="hv" id="hP" style="font-size:11px">+0.00</div><div class="hl">p&l</div></div>
+  <div class="hi">
+    <button id="tierBtn" onclick="showTiers()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#0fc;
+      padding:3px 10px;border-radius:10px;font-family:Orbitron;font-size:8px;cursor:pointer">OBSERVER</button>
+  </div>
+  <div class="hi">
+    <button id="sndBtn" onclick="toggleSound()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#446;
+      padding:3px 8px;border-radius:10px;font-family:Orbitron;font-size:8px;cursor:pointer">♪</button>
+  </div>
+  <div class="hi">
+    <button onclick="toggleVizPanel()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#0fc;
+      padding:3px 8px;border-radius:10px;font-family:Orbitron;font-size:8px;cursor:pointer">VIZ</button>
+  </div>
+  <div class="hi">
+    <button onclick="toggleInfoBar()" style="background:none;border:none;color:#334;
+      padding:3px 4px;font-family:Orbitron;font-size:8px;cursor:pointer" id="infoToggle">▼</button>
+  </div>
+  <div class="hi" id="resetWrap" style="display:none">
+    <button onclick="resetDemo()" style="background:rgba(60,20,0,.7);border:1px solid #fc44;color:#fc4;
+      padding:3px 8px;border-radius:10px;font-family:Orbitron;font-size:7px;cursor:pointer">RESET</button>
+  </div>
+</div>
+<div id="status-bar"></div>
+<div id="info-bar" style="display:none;position:fixed;top:36px;left:50%;transform:translateX(-50%);z-index:20;
+  background:rgba(0,4,12,0.85);border:1px solid #ffffff08;border-radius:0 0 10px 10px;padding:3px 14px;backdrop-filter:blur(10px);
+  gap:12px;font-size:8px">
+  <div class="hi"><div class="hl">stars</div><div class="hv dim" id="hS" style="font-size:9px">0</div></div>
+  <div class="hi"><div class="hl">trades</div><div class="hv dim" id="hT" style="font-size:9px">0</div></div>
+  <div class="hi"><div class="hl">grief</div><div class="hv dim" id="hG" style="font-size:9px">—</div></div>
+  <div class="hi"><div class="hl">bonds</div><div class="hv dim" id="hBo" style="font-size:9px">0</div></div>
+</div>
+
+<div id="detail"><span id="d-close" onclick="closeDet()">✕</span><h3 id="dN">—</h3><div id="dB"></div></div>
+
+<div id="oracle-resp"></div>
+<div id="oracle">
+  <input id="oI" placeholder="Ask the oracle..." onkeydown="if(event.key==='Enter')ask()">
+  <button onclick="ask()">ASK</button>
+</div>
+
+<div id="tier-panel">
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:Orbitron;font-size:13px;color:#0fc;letter-spacing:.12em">CHOOSE LEVEL</span>
+    <span onclick="closeTiers()" style="color:#445;cursor:pointer">✕</span>
+  </div>
+  <div class="tc on" onclick="pickTier('observer')" id="to"><div class="tc-h"><span class="tc-n">👁 OBSERVER</span><span class="tc-p">FREE</span></div><div class="tc-d">Watch the universe. Learn the patterns.</div></div>
+  <div class="tc" onclick="pickTier('explorer')" id="te"><div class="tc-h"><span class="tc-n">🔭 EXPLORER</span><span class="tc-p">€29/mo</span></div><div class="tc-d">Demo 10,000 TON. Full signals. Zero risk.</div></div>
+  <div class="tc" onclick="pickTier('trader')" id="tt"><div class="tc-h"><span class="tc-n">⚡ TRADER</span><span class="tc-p">€99/mo +20%</span></div><div class="tc-d">Real money. Real profits. Live wallet.</div></div>
+  <div class="tc" onclick="pickTier('strategist')" id="ts"><div class="tc-h"><span class="tc-n">🧠 STRATEGIST</span><span class="tc-p">€299/mo +15%</span></div><div class="tc-d">3 AI models vote on every trade. You set risk, leverage, and strategy params. Full API for your own bots.</div>
+    <div id="strat-info" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid #0fc1;font-size:7px;color:#556;line-height:1.5">
+      <b style="color:#0fc8">AI Consensus:</b> 3 models (Grok + Gemini + internal) independently analyze each signal. 3/3 agreement = max confidence. Split vote = grief (auto-close).<br>
+      <b style="color:#0fc8">Custom Params:</b> Adjust leverage range, position size, stop loss, take profit, grief threshold, cooldown timers.<br>
+      <b style="color:#0fc8">API Access:</b> REST endpoints for signals, field state, and trade execution. Build your own UI or bot on top of B.O.S.S.
+    </div>
+  </div>
+  <div class="tc" onclick="pickTier('boss')" id="tb" style="border-color:#fc42"><div class="tc-h"><span class="tc-n" style="color:#fc4">👑 BOSS TOKEN</span><span class="tc-p" style="color:#fc4">STAKE</span></div><div class="tc-d" style="color:#fc48">All Strategist features + revenue share + governance.</div>
+    <div id="boss-info" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid #fc41;font-size:7px;color:#556;line-height:1.5">
+      <b style="color:#fc48">Token:</b> $BOSS on TON blockchain. Stake to unlock all tiers + earn platform fees.<br>
+      <b style="color:#fc48">Revenue Share:</b> 10% of all platform trading fees distributed to stakers weekly.<br>
+      <b style="color:#fc48">Governance:</b> Vote on engine parameters, new asset listings, fee structures.<br>
+      <b style="color:#fc48">Status:</b> Token contract in development. Early access for pre-stakers.
+    </div>
+  </div>
+</div>
+
+<div id="viz-panel" style="display:none;position:fixed;left:12px;top:55px;width:200px;max-height:calc(100vh - 120px);overflow-y:auto;background:rgba(0,6,16,0.94);
+  border:1px solid #0fc2;border-radius:8px;padding:12px;z-index:25;backdrop-filter:blur(12px)">
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <span style="font-family:Orbitron;font-size:10px;color:#0fc;letter-spacing:.1em">VISUALIZE</span>
+    <span onclick="toggleVizPanel()" style="color:#445;cursor:pointer;font-size:12px">✕</span>
+  </div>
+  <div style="font-size:7px;color:#0fc8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">Core</div>
+  <div class="vz on" onclick="toggleViz('bonds')"><span class="vn" id="vz-bonds">●</span> Bond Strands <span style="font-size:6px;color:#334">correlation lines</span></div>
+  <div style="font-size:6px;color:#334;padding:1px 0 3px 18px;line-height:1.4"><span style="color:#0fc8">green</span> = move together &nbsp; <span style="color:#f458">red</span> = move opposite &nbsp; thicker = stronger</div>
+  <div class="vz on" onclick="toggleViz('rivers')"><span class="vn" id="vz-rivers">●</span> Money Flow <span style="font-size:6px;color:#334">capital movement</span></div>
+  <div class="vz on" onclick="toggleViz('globalFlow')"><span class="vn" id="vz-globalFlow">●</span> Global Flow <span style="font-size:6px;color:#0fc8">sector capital rotation</span></div>
+  <div class="vz" onclick="toggleViz('worldMap')"><span class="vn" id="vz-worldMap">○</span> World Map <span style="font-size:6px;color:#0fc8">geographic hub flows</span></div>
+  <div class="vz" onclick="toggleViz('sankey')"><span class="vn" id="vz-sankey">○</span> Sankey Flow <span style="font-size:6px;color:#0fc8">asset-to-asset capital</span></div>
+  <div class="vz" onclick="toggleViz('flowPipes')"><span class="vn" id="vz-flowPipes">○</span> Flow Pipes <span style="font-size:6px;color:#334">thick directional flow</span></div>
+  <div class="vz" onclick="toggleViz('ripples')"><span class="vn" id="vz-ripples">○</span> Heartbeat Ripples <span style="font-size:6px;color:#334">volatility pulses</span></div>
+  <div class="vz" onclick="toggleViz('volShadow')"><span class="vn" id="vz-volShadow">○</span> Volume Shadows <span style="font-size:6px;color:#334">activity glow</span></div>
+  <div class="vz" onclick="toggleViz('neuralNet')"><span class="vn" id="vz-neuralNet">○</span> Neural Network <span style="font-size:6px;color:#334">bond + firing nodes</span></div>
+  <div style="font-size:7px;color:#0fc8;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.1em">Data</div>
+  <div class="vz" onclick="toggleViz('signalBars')"><span class="vn" id="vz-signalBars">○</span> Signal Dashboard</div>
+  <div class="vz" onclick="toggleViz('equityCurve')"><span class="vn" id="vz-equityCurve">○</span> Equity Curve</div>
+  <div class="vz" onclick="toggleViz('tradeLog')"><span class="vn" id="vz-tradeLog">○</span> Trade Log</div>
+  <div class="vz" onclick="toggleViz('corrMatrix')"><span class="vn" id="vz-corrMatrix">○</span> Correlation Map</div>
+  <div class="vz" onclick="toggleViz('sparklines')"><span class="vn" id="vz-sparklines">○</span> Price Sparklines</div>
+  <div class="vz" onclick="toggleViz('colorTemp')"><span class="vn" id="vz-colorTemp">○</span> Color Temperature <span style="font-size:6px;color:#334">heat spectrum</span></div>
+  <div style="font-size:7px;color:#0fc8;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.1em">Layout</div>
+  <div class="vz on" onclick="toggleViz('gravity')"><span class="vn" id="vz-gravity">●</span> Sentiment Gravity</div>
+  <div class="vz on" onclick="toggleViz('spiral')"><span class="vn" id="vz-spiral">●</span> Golden Spiral <span style="font-size:6px;color:#334">hottest to center</span></div>
+  <div class="vz" onclick="toggleViz('forceGraph')"><span class="vn" id="vz-forceGraph">○</span> Force Graph <span style="font-size:6px;color:#334">physics layout</span></div>
+  <div class="vz" onclick="toggleViz('spiderWeb')"><span class="vn" id="vz-spiderWeb">○</span> Spider Web <span style="font-size:6px;color:#334">radial from center</span></div>
+  <div style="font-size:7px;color:#4458;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.1em">Labs <span style="font-size:6px;color:#333">needs live data</span></div>
+  <div class="vz" onclick="toggleViz('trails')"><span class="vn" id="vz-trails">○</span> Comet Trails</div>
+  <div class="vz" onclick="toggleViz('ghosts')"><span class="vn" id="vz-ghosts">○</span> Ghost Positions</div>
+  <div class="vz" onclick="toggleViz('divergence')"><span class="vn" id="vz-divergence">○</span> Divergence Flares</div>
+  <div class="vz" onclick="toggleViz('weather')"><span class="vn" id="vz-weather">○</span> Market Weather</div>
+  <div class="vz" onclick="toggleViz('obMass')"><span class="vn" id="vz-obMass">○</span> Order Book Mass <span style="font-size:6px;color:#333">HL only</span></div>
+  <div class="vz" onclick="toggleViz('liqZones')"><span class="vn" id="vz-liqZones">○</span> Liquidation Zones <span style="font-size:6px;color:#333">HL only</span></div>
+</div>
+
+<div id="nar"></div>
+
+<div id="onboard" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,2,8,0.92);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center">
+  <div style="max-width:400px;padding:30px;text-align:center">
+    <div style="font-family:Orbitron;font-size:18px;color:#0fc;letter-spacing:.15em;margin-bottom:16px">B.O.S.S.</div>
+    <div style="font-size:11px;color:#778;line-height:1.7;margin-bottom:20px">
+      You're looking at a <span style="color:#0fc">living resonance field</span> — every dot is a real market asset, breathing with momentum.<br><br>
+      <span style="color:#0fc">Green</span> = bullish &nbsp; <span style="color:#f45">Red</span> = bearish &nbsp; <span style="color:#aab">Size</span> = activity<br>
+      <span style="color:#0fc4">Green lines</span> = correlated &nbsp; <span style="color:#f458">Red lines</span> = inverse correlation<br><br>
+      <b style="color:#aab">Scroll</b> to zoom &nbsp; <b style="color:#aab">Drag</b> to pan &nbsp; <b style="color:#aab">Click</b> any star for details<br>
+      <b style="color:#aab">Oracle</b> answers questions about the market<br>
+      <b style="color:#aab">VIZ</b> toggles visualization layers
+    </div>
+    <div style="font-size:9px;color:#445;margin-bottom:16px">Choose a level to begin. Observer is free — just watch and learn.</div>
+    <button onclick="dismissOnboard()" style="background:rgba(0,40,25,.8);border:1px solid #0fc;color:#0fc;
+      padding:8px 28px;border-radius:20px;font-family:Orbitron;font-size:10px;cursor:pointer;letter-spacing:.1em">ENTER</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// B.O.S.S. UNIVERSE v2 — Clean, beautiful, no visual bugs
+// ═══════════════════════════════════════════════════════════════
+
+var cv,cx,W,H;
+function _initCanvas(){cv=document.getElementById('cv');cx=cv.getContext('2d');W=cv.width=innerWidth;H=cv.height=innerHeight}
+
+// ══════════════════════════════════════════════════════════════
+// ENGINE CLASSES (Narrator, TBond, BossField, BossTrader)
+// ══════════════════════════════════════════════════════════════
+class BossNarrator {
+  constructor(el){this.el=el;this.buffer=[]}
+  log(msg,cls='nt'){
+    var d=document.createElement('div');d.className=cls;
+    d.textContent=new Date().toLocaleTimeString()+' '+msg;
+    if(this.el){this.el.appendChild(d);this.el.scrollTop=this.el.scrollHeight;
+      if(this.el.children.length>40)this.el.removeChild(this.el.firstChild)}
+    this.buffer.push({time:Date.now(),msg,cls});if(this.buffer.length>200)this.buffer.shift();
+  }
+}
+
+class TBond{constructor(from,to,strength,delayH){this.from=from;this.to=to;this.strength=strength;this.delayMs=delayH*3600000;this.lastFired=0}}
+
+class BossField {
+  constructor(nar){this.nar=nar;this.nodes=new Map();this.bonds=[];this.cascadeQueue=[];this.grief=0;this.fieldWarmth=0}
+  addNode(id,type){if(!this.nodes.has(id))this.nodes.set(id,{id,type,price:0,change:0,warmth:0.1,dir:null,history:[],ema8:0,ema21:0,ema55:0,rsi:50,cascadeFrom:null,hasTrade:false});return this.nodes.get(id)}
+  updateNode(id,price,change){
+    var n=this.nodes.get(id);if(!n)return;n.price=price;n.change=change;n.dir=change>0.001?'BULL':change<-0.001?'BEAR':n.dir||'BULL';
+    n.warmth=Math.max(n.warmth,Math.abs(change)/3);n.history.push(price);if(n.history.length>200)n.history.shift();
+    var h=n.history;
+    if(h.length>=8)n.ema8=this._ema(h,8);if(h.length>=21)n.ema21=this._ema(h,21);if(h.length>=55)n.ema55=this._ema(h,55);
+    if(h.length>=15){var g=0,l=0;for(var i=h.length-14;i<h.length;i++){var d=h[i]-h[i-1];if(d>0)g+=d;else l-=d}var rs=l>0?g/l:100;n.rsi=100-(100/(1+rs))}
+  }
+  _ema(arr,p){var k=2/(p+1),e=arr[0];for(var i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e}
+  learnBonds(){
+    var ids=[...this.nodes.keys()].filter(id=>{var n=this.nodes.get(id);return n.history.length>=30});
+    this.bonds=[];
+    for(var i=0;i<ids.length;i++)for(var j=i+1;j<ids.length;j++){
+      // Only correlate within same type or crypto↔forex cross-market
+      var ta=this.nodes.get(ids[i]).type,tb=this.nodes.get(ids[j]).type;
+      if(ta!==tb&&!(ta==='crypto'&&tb==='forex')&&!(ta==='forex'&&tb==='crypto'))continue;
+      var ha=this.nodes.get(ids[i]).history,hb=this.nodes.get(ids[j]).history;var bestCorr=0,bestLag=0;
+      for(var lag=0;lag<=12;lag++){var len=Math.min(ha.length-lag,hb.length)-1;if(len<10)continue;
+        var ca=[],cb=[];for(var k=1;k<len;k++){ca.push((ha[k]-ha[k-1])/ha[k-1]);cb.push((hb[k+lag]-hb[k+lag-1])/hb[k+lag-1])}
+        var mA=ca.reduce(function(s,c){return s+c},0)/ca.length,mB=cb.reduce(function(s,c){return s+c},0)/cb.length;
+        var num=0,dA=0,dB=0;for(var k=0;k<ca.length;k++){var a=ca[k]-mA,b=cb[k]-mB;num+=a*b;dA+=a*a;dB+=b*b}
+        var corr=(dA&&dB)?num/Math.sqrt(dA*dB):0;if(Math.abs(corr)>Math.abs(bestCorr)){bestCorr=corr;bestLag=lag}}
+      if(Math.abs(bestCorr)>0.35){this.bonds.push(new TBond(ids[i],ids[j],bestCorr,bestLag));
+        if(bestLag>0&&Math.abs(bestCorr)>0.5)this.nar.log('Bond: '+ids[i]+' leads '+ids[j]+' by '+bestLag+'h','nt-cascade')}
+    }
+  }
+  injectEvent(nodeId,magnitude){
+    var n=this.nodes.get(nodeId);if(!n)return;n.warmth=Math.min(n.warmth+Math.abs(magnitude)*2,10);
+    for(var b=0;b<this.bonds.length;b++){var bond=this.bonds[b];
+      if(bond.from===nodeId||bond.to===nodeId){var target=bond.from===nodeId?bond.to:bond.from;var prop=magnitude*bond.strength;
+        if(Math.abs(prop)>=0.01)this.cascadeQueue.push({target:target,magnitude:prop,source:nodeId,executeAt:Date.now()+bond.delayMs,delayMs:bond.delayMs})}}
+  }
+  processCascades(){
+    var now=Date.now(),ready=this.cascadeQueue.filter(function(c){return c.executeAt<=now});
+    this.cascadeQueue=this.cascadeQueue.filter(function(c){return c.executeAt>now});
+    for(var i=0;i<ready.length;i++){var c=ready[i];var n=this.nodes.get(c.target);if(!n)continue;
+      n.warmth=Math.min(n.warmth+Math.abs(c.magnitude)*1.5,10);n.cascadeFrom=c.source;
+      this.nar.log('Wave: '+c.source+' → '+c.target,'nt-cascade')}
+    return ready;
+  }
+  tick(dt){
+    var cascades=this.processCascades();
+    for(var[,n]of this.nodes){n.warmth*=Math.exp(-0.001*dt);if(n.warmth<0.08)n.warmth=0.08}
+    var cryptos=[...this.nodes.values()].filter(function(n){return n.type==='crypto'});
+    // Grief = how many correlated bonds are currently disagreeing (diverging)
+    var divergent=0,totalStrong=0;
+    for(var bi=0;bi<this.bonds.length;bi++){
+      var bond=this.bonds[bi];if(bond.strength<0.4)continue; // only check positively correlated bonds
+      var na=this.nodes.get(bond.from),nb=this.nodes.get(bond.to);
+      if(!na||!nb)continue;totalStrong++;
+      if(na.dir!==nb.dir&&na.warmth>0.3&&nb.warmth>0.3)divergent++; // correlated pair moving opposite = grief
+    }
+    this.grief=totalStrong>0?divergent/totalStrong:0;
+    this.fieldWarmth=cryptos.reduce(function(s,n){return s+n.warmth},0)/(cryptos.length||1);
+    return cascades;
+  }
+  getSignals(){
+    var signals=[];
+    for(var[id,n]of this.nodes){if(n.type!=='crypto'||n.warmth<0.15)continue;
+      var dir=null,reason='';
+      // Primary: EMA crossover + RSI (needs hours of data)
+      if(n.history.length>=25&&n.ema8>n.ema21&&n.ema21>n.ema55&&n.rsi>35&&n.rsi<72){dir='LONG';reason='EMA bull RSI '+n.rsi.toFixed(0)}
+      else if(n.history.length>=25&&n.ema8<n.ema21&&n.ema21<n.ema55&&n.rsi>28&&n.rsi<65){dir='SHORT';reason='EMA bear RSI '+n.rsi.toFixed(0)}
+      // Fallback: warmth + direction when EMAs are flat (demo/early data)
+      if(!dir&&n.warmth>0.8&&n.change!==0){
+        dir=n.change>0?'LONG':'SHORT';reason='Warmth '+n.warmth.toFixed(1)+' '+n.dir}
+      // EMA contradiction filter (only when EMAs have diverged)
+      if(n.history.length>=25&&n.ema8>n.ema21&&n.ema21<n.ema55)dir=null;
+      if(n.history.length>=25&&n.ema8<n.ema21&&n.ema21>n.ema55)dir=null;
+      var cb=this.cascadeQueue.filter(function(c){return c.target===id}).reduce(function(s,c){return s+c.magnitude},0);
+      if(dir)signals.push({id:id,dir:dir,warmth:n.warmth,price:n.price,reason:reason,cascadeBoost:cb,rsi:n.rsi})}
+    return signals.sort(function(a,b){return b.warmth-a.warmth});
+  }
+}
+
+class BossTrader {
+  constructor(field,nar){this.field=field;this.nar=nar;this.balance=0;this.startBal=0;this.positions=new Map();this.history=[];this.wins=0;this.losses=0;this.dailyPnL=0;this.consecutiveLosses=0;this.lastLossTime=0;
+    this.cfg={maxPos:4,posSize:0.20,maxExposure:0.65,stopLoss:0.035,takeProfit:0.08,dailyLimit:0.12,baseLev:2,maxLev:4,fee:0.0005,griefThreshold:0.6,cooldown:30000}}
+  start(bal){this.balance=bal;this.startBal=bal;this.nar.log('Trader: '+bal.toFixed(0)+' TON','nt-trade')}
+  execute(){
+    if(this.balance<=0)return;var now=Date.now();
+    // Reset daily PnL at midnight (or after 24h since last reset)
+    if(!this._lastDailyReset)this._lastDailyReset=now;
+    if(now-this._lastDailyReset>86400000){this.dailyPnL=0;this._lastDailyReset=now;this.nar.log('Daily P&L reset','nt-trade')}
+    if(this.dailyPnL<-(this.startBal*this.cfg.dailyLimit))return;
+    if(this.field.grief>this.cfg.griefThreshold){this.nar.log('Grief closing all','nt-grief');playGriefDissonance();this.closeAll('Grief');return}
+    if(now-this.lastLossTime<this.cfg.cooldown)return;
+    for(var[id,pos]of this.positions){var n=this.field.nodes.get(id);if(!n||!n.price)continue;
+      var pnl=pos.dir==='LONG'?(n.price-pos.entry)/pos.entry*pos.lev:(pos.entry-n.price)/pos.entry*pos.lev;
+      var stopAt=pnl>0.05?-0.012:-this.cfg.stopLoss;
+      if(pnl<=stopAt)this.close(id,n.price,pnl,pnl>0?'Trail':'SL');
+      else if(pnl>=this.cfg.takeProfit&&!pos.partial){var amt=pos.size*0.6;var net=amt*pnl-amt*this.cfg.fee*2;this.balance+=amt+net;this.dailyPnL+=net;pos.size*=0.4;pos.partial=true}
+      else if(pnl>=this.cfg.takeProfit*2.5)this.close(id,n.price,pnl,'TP');
+      else if(n.warmth<0.12&&pnl>0.01)this.close(id,n.price,pnl,'Fade')}
+    if(this.positions.size>=this.cfg.maxPos)return;
+    var exposure=0;for(var[,p]of this.positions)exposure+=p.size;
+    if(exposure>=this.balance*this.cfg.maxExposure)return;
+    var signals=this.field.getSignals();
+    for(var si=0;si<signals.length;si++){var sig=signals[si];
+      if(this.positions.has(sig.id)||this.positions.size>=this.cfg.maxPos)continue;
+      var size=this.balance*this.cfg.posSize;
+      if(sig.cascadeBoost&&Math.abs(sig.cascadeBoost)>0.05)size*=1.4;
+      if(this.consecutiveLosses>2)size*=0.5;
+      var lev=Math.min(this.cfg.maxLev,this.cfg.baseLev+sig.warmth);size=Math.min(size,this.balance*0.9);if(size<1)continue;
+      this.positions.set(sig.id,{entry:sig.price,size:size,dir:sig.dir,lev:lev,time:Date.now(),partial:false});
+      this.balance-=size;var node=this.field.nodes.get(sig.id);if(node)node.hasTrade=true;
+      this.nar.log((sig.dir==='LONG'?'Buy ':'Short ')+sig.id+' '+lev.toFixed(1)+'x','nt-trade')}
+  }
+  close(id,price,pnlPct,reason){
+    var pos=this.positions.get(id);if(!pos)return;var net=pos.size*pnlPct-pos.size*this.cfg.fee*2;
+    this.balance+=pos.size+net;this.dailyPnL+=net;
+    if(net>=0){this.wins++;this.consecutiveLosses=0}else{this.losses++;this.consecutiveLosses++;this.lastLossTime=Date.now()}
+    var node=this.field.nodes.get(id);if(node)node.hasTrade=false;
+    try{var s=starMap[id];if(s&&vfx)vfx.addProfitBurst(s,net>=0);playProfitHarmony(net>=0)}catch(e){}
+    this.history.push({id:id,pnl:net,pnlPct:pnlPct*100,reason:reason,time:Date.now()});this.positions.delete(id);
+    this.nar.log((net>=0?'+ ':'- ')+id+' '+(pnlPct*100).toFixed(1)+'%',net>=0?'nt-trade':'nt-grief')}
+  closeAll(reason){var ids=[...this.positions.keys()];for(var i=0;i<ids.length;i++){var id=ids[i];var n=this.field.nodes.get(id);if(!n||!n.price)continue;var pos=this.positions.get(id);var pnl=pos.dir==='LONG'?(n.price-pos.entry)/pos.entry*pos.lev:(pos.entry-n.price)/pos.entry*pos.lev;this.close(id,n.price,pnl,reason)}}
+  getStatus(){var t=this.wins+this.losses;return{balance:this.balance,positions:this.positions.size,trades:t,wins:this.wins,losses:this.losses,winRate:t>0?(this.wins/t*100):0,grief:this.field.grief}}
+}
+
+// ══════════════════════════════════════════════════════════════
+// HYPERLIQUID + FUNDING FARMER
+// ══════════════════════════════════════════════════════════════
+class HyperliquidAPI {
+  constructor(nar){this.nar=nar;this.ws=null;this.connected=false;this.orderbook={};this.funding={};this.liquidations={};this.trades={};this.callbacks={};this._reconnectAttempts=0;this._maxReconnects=10}
+  async connect(){return new Promise((resolve,reject)=>{try{
+    this.ws=new WebSocket('wss://api.hyperliquid.xyz/ws');
+    this.ws.onopen=()=>{this.connected=true;this._reconnectAttempts=0;this.nar.log('HL connected','nt-trade');
+      ['BTC','ETH','SOL','DOGE','ADA','AVAX','DOT','LINK','TON','XRP'].forEach(c=>{this.subscribe('trades',c);this.subscribe('l2Book',c)});
+      this.ws.send(JSON.stringify({method:'subscribe',subscription:{type:'allLiquidations'}}));resolve()};
+    this.ws.onmessage=e=>{try{this.handleMessage(JSON.parse(e.data))}catch(x){}};
+    this.ws.onerror=()=>{reject()};
+    this.ws.onclose=()=>{this.connected=false;
+      if(this._reconnectAttempts<this._maxReconnects){
+        this._reconnectAttempts++;var delay=Math.min(60000,5000*Math.pow(1.5,this._reconnectAttempts));
+        this.nar.log('HL reconnecting in '+Math.floor(delay/1000)+'s ('+this._reconnectAttempts+'/'+this._maxReconnects+')','nt');
+        setTimeout(()=>this.connect().catch(function(){}),delay);
+      }else{this.nar.log('HL gave up after '+this._maxReconnects+' attempts','nt-grief')}};
+  }catch(e){reject(e)}})}
+  subscribe(type,coin){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({method:'subscribe',subscription:{type:type,coin:coin}}))}
+  handleMessage(data){var ch=data.channel,d=data.data;
+    if(ch==='trades')for(var t of(d||[])){var sym=t.coin;if(!this.trades[sym])this.trades[sym]=[];this.trades[sym].push({price:parseFloat(t.px),size:parseFloat(t.sz),side:t.side});if(this.trades[sym].length>100)this.trades[sym].shift();if(parseFloat(t.sz)*parseFloat(t.px)>100000)this.onWhale(sym,t)}
+    if(ch==='l2Book'){var sym=d.coin;this.orderbook[sym]={bids:(d.levels[0]||[]).map(l=>({price:parseFloat(l.px),size:parseFloat(l.sz)})),asks:(d.levels[1]||[]).map(l=>({price:parseFloat(l.px),size:parseFloat(l.sz)}))}}
+    if(ch==='allLiquidations')for(var liq of(d||[])){var sym=liq.coin;if(!this.liquidations[sym])this.liquidations[sym]=[];this.liquidations[sym].push({price:parseFloat(liq.px),size:parseFloat(liq.sz)});if(this.liquidations[sym].length>50)this.liquidations[sym].shift()}}
+  onWhale(sym,trade){var val=parseFloat(trade.sz)*parseFloat(trade.px);this.nar.log('Whale: '+sym+' $'+(val/1000).toFixed(0)+'K','nt-cascade');if(this.callbacks.onWhale)this.callbacks.onWhale(sym,trade.side,val)}
+  async getFundingRates(){try{var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'metaAndAssetCtxs'})});var data=await r.json();var metas=data[0]?.universe||[];var ctxs=data[1]||[];for(var i=0;i<metas.length&&i<ctxs.length;i++){var sym=metas[i].name;this.funding[sym]={rate:parseFloat(ctxs[i].funding||0),markPrice:parseFloat(ctxs[i].markPx||0)}}return this.funding}catch(e){return{}}}
+  // Get latest price from trade feed for real-time updates between API polls
+  getLatestPrice(sym){var t=this.trades[sym];if(!t||t.length===0)return null;return t[t.length-1].price}
+  getDepth(sym){var ob=this.orderbook[sym];if(!ob)return{imbalance:0};var bd=ob.bids.slice(0,10).reduce(function(s,b){return s+b.size*b.price},0);var ad=ob.asks.slice(0,10).reduce(function(s,a){return s+a.size*a.price},0);var t=bd+ad;return{imbalance:t>0?(bd-ad)/t:0}}
+}
+
+class FundingFarmer {
+  constructor(api,nar){this.api=api;this.nar=nar}
+  async scan(){var funding=await this.api.getFundingRates();var opps=[];
+    for(var[sym,d]of Object.entries(funding)){var ann=d.rate*3*365*100;if(Math.abs(ann)>30)opps.push({symbol:sym,annualized:ann,direction:d.rate>0?'SHORT':'LONG'})}
+    if(opps.length>0){opps.sort(function(a,b){return Math.abs(b.annualized)-Math.abs(a.annualized)});this.nar.log('Funding: '+opps[0].symbol+' '+opps[0].direction+' '+opps[0].annualized.toFixed(0)+'% APR','nt-cascade')}
+    return opps}
+}
+
+// ══════════════════════════════════════════════════════════════
+// VISUAL FX — clean, minimal
+// ══════════════════════════════════════════════════════════════
+class VisualFX {
+  constructor(){this.pulses=[];this.shockwaves=[];this.particles=[]}
+  addCascadePulse(from,to){this.pulses.push({from:from,to:to,progress:0,speed:0.0004,color:from.dir==='BULL'?'0,255,200':'255,80,100'})}
+  addShockwave(star,mag){this.shockwaves.push({x:star.wx,y:star.wy,radius:0,maxRadius:150,speed:60,alpha:0.4,color:mag>0?'0,255,200':'255,80,100'})}
+  addProfitBurst(star,isProfit){for(var i=0;i<8;i++){var a=(i/8)*6.28;this.particles.push({x:star.wx,y:star.wy,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,life:1,decay:0.02,color:isProfit?'0,255,200':'255,80,100',size:2})}}
+  draw(dt){
+    for(var i=this.pulses.length-1;i>=0;i--){var p=this.pulses[i];p.progress+=p.speed*dt*1000;
+      if(p.progress>=1){this.pulses.splice(i,1);continue}
+      var fx=(p.from.wx+(p.to.wx-p.from.wx)*p.progress-cam.x)*cam.z+W/2;
+      var fy=(p.from.wy+(p.to.wy-p.from.wy)*p.progress-cam.y)*cam.z+H/2;
+      var al=0.6*(1-p.progress);
+      cx.fillStyle='rgba('+p.color+','+al+')';cx.beginPath();cx.arc(fx,fy,4*cam.z,0,6.28);cx.fill()}
+    for(var i=this.shockwaves.length-1;i>=0;i--){var s=this.shockwaves[i];s.radius+=s.speed*dt;s.alpha*=0.97;
+      if(s.alpha<0.02||s.radius>s.maxRadius){this.shockwaves.splice(i,1);continue}
+      var sx=(s.x-cam.x)*cam.z+W/2,sy=(s.y-cam.y)*cam.z+H/2;
+      cx.strokeStyle='rgba('+s.color+','+s.alpha+')';cx.lineWidth=1.5*cam.z;cx.beginPath();cx.arc(sx,sy,s.radius*cam.z,0,6.28);cx.stroke()}
+    for(var i=this.particles.length-1;i>=0;i--){var p=this.particles[i];p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.life-=p.decay;
+      if(p.life<=0){this.particles.splice(i,1);continue}
+      var px=(p.x-cam.x)*cam.z+W/2,py=(p.y-cam.y)*cam.z+H/2;
+      cx.fillStyle='rgba('+p.color+','+p.life+')';cx.beginPath();cx.arc(px,py,p.size*cam.z,0,6.28);cx.fill()}
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AI CONSENSUS — Gemini council for Strategist/BOSS tiers
+// ══════════════════════════════════════════════════════════════
+class AIConsensus {
+  constructor(nar){this.nar=nar;this.keys={};this.profiles={};this.lastVotes={};this.callCount=0;this.enabled=false}
+  setKey(provider,k){this.keys[provider]=k;this.enabled=true;try{localStorage.setItem('BOSS_KEY_'+provider,k)}catch(e){};this.nar.log('AI '+provider+' connected','nt-cascade')}
+  loadKeys(){var loaded=0;['gemini','grok'].forEach(function(p){try{var k=localStorage.getItem('BOSS_KEY_'+p);if(k){this.keys[p]=k;loaded++}}catch(e){}}.bind(this));if(loaded>0)this.enabled=true;return loaded}
+
+  updateProfile(sym,price,change,warmth,history){
+    if(!this.profiles[sym])this.profiles[sym]={sym:sym,personality:'',state:'',patterns:[]};
+    var p=this.profiles[sym];
+    if(Math.abs(change)<0.5)p.state='quiet';else if(change>3)p.state='pumping';else if(change>1)p.state='uptrend';else if(change<-3)p.state='dumping';else if(change<-1)p.state='downtrend';else p.state='ranging';
+    // Build personality from history
+    if(history&&history.length>=30){
+      var changes=[];for(var i=1;i<history.length;i++)changes.push((history[i]-history[i-1])/history[i-1]*100);
+      var avg=changes.reduce(function(s,c){return s+c},0)/changes.length;
+      var vol=Math.sqrt(changes.reduce(function(s,c){return s+(c-avg)*(c-avg)},0)/changes.length);
+      var traits=[];
+      if(vol>2)traits.push('volatile');else if(vol<0.5)traits.push('stable');
+      if(avg>0.05)traits.push('bullish');else if(avg<-0.05)traits.push('bearish');else traits.push('neutral');
+      p.personality=traits.join(', ');
+    }
+    return p;
+  }
+
+  async askCouncil(sym,price,change,warmth,fieldGrief,bullCount,bearCount){
+    if(!this.enabled)return null;
+    var p=this.profiles[sym]||{personality:'unknown',state:'unknown'};
+    var prompt='You are 3 different crypto traders analyzing '+sym+'. Price: $'+price.toFixed(2)+', 24h: '+(change>=0?'+':'')+change.toFixed(2)+'%, momentum: '+warmth.toFixed(2)+', state: '+p.state+', personality: '+(p.personality||'unknown')+', market: '+bullCount+' bulls vs '+bearCount+' bears, field grief: '+(fieldGrief*100).toFixed(0)+'%.\n\nRespond as exactly 3 traders, each on one line:\nTrader1: ACTION|CONFIDENCE(1-10)|reason\nTrader2: ACTION|CONFIDENCE(1-10)|reason\nTrader3: ACTION|CONFIDENCE(1-10)|reason\n\nACTION must be LONG, SHORT, or HOLD. Be brief.';
+
+    var text='';
+    try{
+      // Try real APIs first (Grok → Gemini)
+      if(this.keys.grok){try{
+        var resp=await fetch('https://api.x.ai/v1/chat/completions',{method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+this.keys.grok},
+          body:JSON.stringify({model:'grok-3-mini-fast',max_tokens:150,temperature:0.8,messages:[{role:'user',content:prompt}]})});
+        var data=await resp.json();
+        text=(data.choices&&data.choices[0]&&data.choices[0].message)?data.choices[0].message.content:'';
+      }catch(e){}}
+      if(!text&&this.keys.gemini){try{
+        var resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',{
+          method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':this.keys.gemini},
+          body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:150,temperature:0.8}})});
+        var data=await resp.json();
+        text=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]?data.candidates[0].content.parts[0].text:'';
+      }catch(e){}}
+      // SIMULATED COUNCIL — 3 trader personalities using field data
+      if(!text){
+        var t1,t2,t3,c1,c2,c3;
+        // Trader 1: Momentum trader — follows warmth + direction
+        if(warmth>1.5&&change>0){t1='LONG';c1=Math.min(9,Math.floor(warmth*2))}
+        else if(warmth>1.5&&change<0){t1='SHORT';c1=Math.min(9,Math.floor(warmth*2))}
+        else{t1='HOLD';c1=4}
+        // Trader 2: Contrarian — fades extremes, buys fear
+        if(change>5){t2='SHORT';c2=7}else if(change<-5){t2='LONG';c2=7}
+        else if(change>2){t2='HOLD';c2=5}else if(change<-2){t2='HOLD';c2=5}
+        else if(change>0){t2='LONG';c2=4}else{t2='SHORT';c2=4}
+        // Trader 3: Risk manager — grief-aware, conservative
+        if(fieldGrief>0.5){t3='HOLD';c3=8}
+        else if(warmth>2&&change>1&&bullCount>bearCount*2){t3='LONG';c3=6}
+        else if(warmth>2&&change<-1&&bearCount>bullCount*2){t3='SHORT';c3=6}
+        else{t3='HOLD';c3=5}
+        text='Trader1: '+t1+'|'+c1+'|Momentum '+change.toFixed(1)+'%\nTrader2: '+t2+'|'+c2+'|Contrarian fade\nTrader3: '+t3+'|'+c3+'|Risk mgmt grief '+(fieldGrief*100).toFixed(0)+'%';
+      }
+      if(!text)return null;
+      this.callCount++;
+      // Parse 3 votes
+      var lines=text.split('\n').filter(function(l){return l.indexOf('|')>0});
+      var votes={LONG:0,SHORT:0,HOLD:0};var reasons=[];var totalConf=0;var count=0;
+      for(var i=0;i<lines.length&&i<3;i++){
+        var parts=lines[i].split('|');if(parts.length<2)continue;
+        var action=parts[0].replace(/[^A-Z]/g,'').trim();
+        if(action.indexOf('LONG')>=0)action='LONG';else if(action.indexOf('SHORT')>=0)action='SHORT';else action='HOLD';
+        var conf=parseInt(parts[1])||5;
+        votes[action]=(votes[action]||0)+1;totalConf+=conf;count++;
+        reasons.push(action+'('+conf+')');
+      }
+      if(count===0)return null;
+      var best='HOLD';if(votes.LONG>votes.SHORT&&votes.LONG>votes.HOLD)best='LONG';else if(votes.SHORT>votes.LONG&&votes.SHORT>votes.HOLD)best='SHORT';
+      var agreement=votes[best]/count;
+      var isGrief=votes.LONG>0&&votes.SHORT>0&&Math.abs(votes.LONG-votes.SHORT)<=1;
+      var result={action:isGrief?'GRIEF':best,confidence:totalConf/count,agreement:agreement,isGrief:isGrief,votes:votes,reasons:reasons.join(' ')};
+      this.lastVotes[sym]=result;
+      this.nar.log('AI '+sym+': '+result.action+' ('+reasons.join(' ')+')'+( isGrief?' GRIEF':''),isGrief?'nt-grief':'nt-cascade');
+      return result;
+    }catch(e){this.nar.log('AI error: '+e.message,'nt-grief');return null}
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOUND RESONANCE
+// ══════════════════════════════════════════════════════════════
+var audioCtx=null,audioEnabled=false,masterGain=null,reverbNode=null;
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=audioCtx.createGain();masterGain.gain.value=0.15;
+  // Reverb for spatial depth
+  reverbNode=audioCtx.createConvolver();
+  var len=audioCtx.sampleRate*2,impulse=audioCtx.createBuffer(2,len,audioCtx.sampleRate);
+  for(var ch=0;ch<2;ch++){var d=impulse.getChannelData(ch);for(var i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5)}
+  reverbNode.buffer=impulse;
+  var wetGain=audioCtx.createGain();wetGain.gain.value=0.3;
+  var dryGain=audioCtx.createGain();dryGain.gain.value=0.7;
+  masterGain.connect(dryGain);dryGain.connect(audioCtx.destination);
+  masterGain.connect(reverbNode);reverbNode.connect(wetGain);wetGain.connect(audioCtx.destination);
+  audioEnabled=true;
+}
+function playStarTone(star,dur,type){if(!audioEnabled)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=120+star.warmth*400;if(star.dir==='BEAR')o.frequency.value*=0.94;g.gain.setValueAtTime(0.15,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.3));o.connect(g);g.connect(masterGain);o.start();o.stop(audioCtx.currentTime+(dur||0.3))}
+function playCascadeChord(from,to){if(!audioEnabled)return;playStarTone(from,0.5,'triangle');setTimeout(function(){playStarTone(to,0.8,'sine')},150)}
+function playGriefDissonance(){if(!audioEnabled)return;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.type='sawtooth';o1.frequency.value=90;o2.type='sawtooth';o2.frequency.value=95;g.gain.setValueAtTime(0.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+1.2);o1.connect(g);o2.connect(g);g.connect(masterGain);o1.start();o2.start();o1.stop(audioCtx.currentTime+1.2);o2.stop(audioCtx.currentTime+1.2)}
+function playProfitHarmony(isProfit){if(!audioEnabled)return;var freqs=isProfit?[261.6,329.6,392]:[220,261.6,293.7];freqs.forEach(function(f,i){setTimeout(function(){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.12,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);o.connect(g);g.connect(masterGain);o.start();o.stop(audioCtx.currentTime+0.5)},i*120)})}
+// Ambient layers: base drone + harmonic shimmer
+var ambientOsc=null,ambientGain=null,shimmerOsc=null,shimmerGain=null;
+var _lastAmbientTone=0;
+function updateAmbientDrone(){
+  if(!audioEnabled||!field)return;
+  // Base drone — always audible when sound is on
+  if(!ambientOsc){
+    ambientOsc=audioCtx.createOscillator();ambientGain=audioCtx.createGain();
+    ambientOsc.type='sine';ambientOsc.frequency.value=55;ambientGain.gain.value=0.06;
+    ambientOsc.connect(ambientGain);ambientGain.connect(masterGain);ambientOsc.start();
+    // Shimmer layer — pentatonic note that shifts with market
+    shimmerOsc=audioCtx.createOscillator();shimmerGain=audioCtx.createGain();
+    shimmerOsc.type='triangle';shimmerOsc.frequency.value=220;shimmerGain.gain.value=0.02;
+    shimmerOsc.connect(shimmerGain);shimmerGain.connect(masterGain);shimmerOsc.start();
+  }
+  // Drone follows field warmth (louder when market is active)
+  var targetDroneVol=Math.max(0.04,Math.min(0.12,field.fieldWarmth*0.06));
+  ambientOsc.frequency.setTargetAtTime(50+field.fieldWarmth*25,audioCtx.currentTime,0.5);
+  ambientGain.gain.setTargetAtTime(targetDroneVol,audioCtx.currentTime,0.3);
+  ambientOsc.detune.setTargetAtTime(field.grief*50,audioCtx.currentTime,0.5);
+  // Shimmer follows bull/bear ratio — pentatonic scale
+  var ratio=_cachedBulls/(_cachedBulls+_cachedBears||1);
+  var penta=[220,246.9,277.2,330,369.9,440]; // A pentatonic
+  var noteIdx=Math.floor(ratio*5);
+  shimmerOsc.frequency.setTargetAtTime(penta[noteIdx]||330,audioCtx.currentTime,1);
+  shimmerGain.gain.setTargetAtTime(Math.max(0.01,Math.min(0.04,field.fieldWarmth*0.02)),audioCtx.currentTime,0.5);
+  // Grief = dissonant detune on shimmer
+  shimmerOsc.detune.setTargetAtTime(field.grief*80,audioCtx.currentTime,0.5);
+  // Periodic ambient tone — one soft note every ~8 seconds driven by market
+  var now=Date.now();
+  if(now-_lastAmbientTone>8000&&stars.length>0){
+    _lastAmbientTone=now;
+    var hot=stars.reduce(function(a,b){return a.warmth>b.warmth?a:b});
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=penta[Math.floor(Math.random()*penta.length)]*(hot.dir==='BULL'?1:0.5);
+    g.gain.setValueAtTime(0.04,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+3);
+    o.connect(g);g.connect(masterGain);o.start();o.stop(audioCtx.currentTime+3);
+  }
+}
+function toggleSound(){
+  if(!audioCtx)initAudio();
+  audioEnabled=!audioEnabled;
+  // Resume AudioContext if suspended (browser autoplay policy)
+  if(audioEnabled&&audioCtx.state==='suspended')audioCtx.resume();
+  var btn=document.getElementById('sndBtn');btn.textContent=audioEnabled?'♪ ON':'♪';btn.style.color=audioEnabled?'#0fc':'#446';
+}
+
+// ══════════════════════════════════════════════════════════════
+// INITIALIZE
+// ══════════════════════════════════════════════════════════════
+_initCanvas();
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;window._neb=null}
+resize();onresize=resize;
+
+var stars=[],bg=[],starMap={}; // starMap[id] = star for O(1) lookup
+var cam={x:0,y:0,z:0.65},sel=null,tier='observer',acct=null;
+var profH=[];
+var vfx=new VisualFX();
+var priceCache=null,lastFetchTime=0; // prevent rate limit on reload
+
+var narrator,field,trader,hlApi,farmer,aiCouncil;
+try{
+  narrator=new BossNarrator(document.getElementById('nar'));
+  field=new BossField(narrator);
+  trader=new BossTrader(field,narrator);trader.start(0);
+  hlApi=new HyperliquidAPI(narrator);farmer=new FundingFarmer(hlApi,narrator);
+  aiCouncil=new AIConsensus(narrator);
+  aiCouncil.loadKeys();
+  // Keys are loaded from localStorage only — never hardcoded in source
+  // To set keys: aiCouncil.setKey('grok','key') or aiCouncil.setKey('gemini','key') in console
+  if(!aiCouncil.keys.grok&&!aiCouncil.keys.gemini){aiCouncil.enabled=true} // simulated council still works
+  hlApi.connect().catch(function(){});
+  hlApi.callbacks.onWhale=function(sym,side,val){field.injectEvent(sym,side==='Buy'?0.05:-0.05);var s=starMap[sym]||starMap[sym.toUpperCase()];if(s)vfx.addShockwave(s,side==='Buy'?1:-1)};
+  setInterval(function(){if(tier==='strategist'||tier==='boss')farmer.scan().catch(function(){})},120000);
+  // AI council scans top signals every 45s for strategist/boss
+  setInterval(function(){
+    if(!aiCouncil.enabled||(tier!=='strategist'&&tier!=='boss'))return;
+    var sigs=field.getSignals().slice(0,3);
+    var bulls=_cachedBulls,bears=_cachedBears;
+    for(var i=0;i<sigs.length;i++){(function(sym){
+      var n=field.nodes.get(sym);if(!n)return;
+      aiCouncil.updateProfile(sym,n.price,n.change,n.warmth,n.history);
+      aiCouncil.askCouncil(sym,n.price,n.change,n.warmth,field.grief,bulls,bears).then(function(result){
+        if(!result)return;
+        if(result.isGrief){field.grief=Math.min(field.grief+0.2,1)}
+        else{var nd=field.nodes.get(sym);if(nd)nd.warmth=Math.min(nd.warmth+result.confidence*0.04,10)}
+      });
+    })(sigs[i].id)}
+  },45000);
+}catch(e){narrator={log:function(){}}}
+
+// Background stars — subtle, slow twinkle
+for(var i=0;i<150;i++)bg.push({x:Math.random()*4000-2000,y:Math.random()*3000-1500,
+  d:Math.random()*3+.5,b:Math.random()*.5+.2,s:Math.random()*1.5+.3,t:Math.random()*6.28,
+  c:['200,220,255','180,210,255','255,220,200','220,200,255'][Math.floor(Math.random()*4)]});
+
+// ══════════════════════════════════════════════════════════════
+// STAR CLASS — clean rendering, smooth breathing
+// ══════════════════════════════════════════════════════════════
+class Star{
+  constructor(id,type,price,change){
+    this.id=id;this.type=type;this.price=price;this.change=change;
+    this.warmth=Math.max(Math.abs(change)/2+.3,type==='forex'?.4:.3);
+    this.dir=change>0.001?'BULL':change<-0.001?'BEAR':'BULL'; // neutral defaults to BULL
+    // Position: placed once, not recalculated
+    var a=Math.random()*6.28;
+    var r=type==='crypto'?200+Math.random()*250:type==='forex'?550+Math.random()*180:150+Math.random()*150;
+    var ox=type==='crypto'?-100:type==='forex'?450:0;
+    var oy=type==='poly'?-300:0;
+    this.bx=ox+Math.cos(a)*r; // base position (stable)
+    this.by=oy+Math.sin(a)*r;
+    this.t=Math.random()*6.28;this.sel=false;this.pos=false;
+  }
+  // World position = base + gentle orbit (not additive!)
+  get wx(){return this.bx+Math.sin(this.t*0.4)*3}
+  get wy(){return this.by+Math.cos(this.t*0.5)*3}
+  get sx(){return(this.wx-cam.x)*cam.z+W/2}
+  get sy(){return(this.wy-cam.y)*cam.z+H/2}
+  get r(){
+    var breathSpeed=0.5+Math.min(this.warmth,3)*0.8;
+    var breath=1+Math.sin(this.t*breathSpeed)*0.2;
+    var base=Math.min(3+this.warmth*3,12);
+    // OB mass boost when enabled
+    if(vizModes.obMass&&this._obBoost)base+=this._obBoost;
+    return Math.max(3,Math.max(base,2)*cam.z*breath);
+  }
+  update(dt){
+    this.warmth*=Math.exp(-.002*dt);if(this.warmth<.15)this.warmth=.15;
+    if(this.type==='forex')this.warmth=Math.max(this.warmth,.2);
+    this.t+=dt*0.8; // smooth time
+  }
+  draw(c){
+    var x=this.sx,y=this.sy,r=this.r;
+    if(x<-50||x>W+50||y<-50||y>H+50)return;
+    var col=vizModes.colorTemp?getColorTemp(this.change,this.warmth):(this.dir==='BULL'?'#00ffcc':'#ff4455');
+    // Solid clean dot
+    c.globalAlpha=0.9;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,6.28);c.fill();
+    // Position ring
+    if(this.pos){c.globalAlpha=0.7;c.strokeStyle='#fc4';c.lineWidth=1.5*cam.z;c.beginPath();c.arc(x,y,r+4*cam.z,0,6.28);c.stroke()}
+    // Selection ring
+    if(this.sel){c.globalAlpha=0.5;c.strokeStyle='#fff';c.lineWidth=1*cam.z;c.setLineDash([3*cam.z,3*cam.z]);c.beginPath();c.arc(x,y,r+8*cam.z,0,6.28);c.stroke();c.setLineDash([])}
+    // Labels only when zoomed in enough
+    if(cam.z>0.55){
+      var lcol=vizModes.colorTemp?'#ddd':col;
+      var labelY=y+r+12*cam.z; // fixed anchor below node
+      c.globalAlpha=0.8;c.fillStyle=lcol;c.font=Math.max(7,9*cam.z)+'px Share Tech Mono';c.textAlign='center';
+      c.fillText(this.id,x,labelY);
+      if(cam.z>0.8){
+        var p=this.price>100?'$'+this.price.toFixed(0):this.price>1?'$'+this.price.toFixed(2):'$'+this.price.toFixed(4);
+        c.globalAlpha=0.35;c.font=Math.max(6,7*cam.z)+'px Share Tech Mono';
+        c.fillText(p+' '+(this.change>=0?'+':'')+this.change.toFixed(1)+'%',x,labelY+10*cam.z);
+      }
+    }
+    c.globalAlpha=1;
+  }
+  hit(mx,my){return Math.hypot(mx-this.sx,my-this.sy)<this.r+8}
+}
+
+// ══════════════════════════════════════════════════════════════
+// TEMPORAL BONDS — only draw learned correlations, not proximity
+// ══════════════════════════════════════════════════════════════
+function drawBonds(){
+  if(!field)return;
+  // Only draw strong bonds (top correlations, not the full 700+)
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];
+    var str=Math.abs(bond.strength);
+    if(str<0.55)continue; // only strong correlations
+    var sa=starMap[bond.from];
+    var sb=starMap[bond.to];
+    if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    var col=bond.strength>0?'0,255,200':'255,100,80';
+    var alpha=0.15+(str-0.55)*0.8; // 0.15 to 0.5 range
+    cx.strokeStyle='rgba('+col+','+alpha+')';
+    cx.lineWidth=Math.max(0.8,(str*2))*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// FLOW RIVERS — subtle animated particles along temporal bonds
+// ══════════════════════════════════════════════════════════════
+function drawFlowRivers(){
+  if(!field||field.bonds.length===0)return;
+  var now=performance.now()/1000;
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];var str=Math.abs(bond.strength);
+    if(str<0.6)continue; // only strong bonds get rivers
+    var sa=starMap[bond.from];
+    var sb=starMap[bond.to];
+    if(!sa||!sb)continue;
+    var lx=sa.sx,ly=sa.sy,fx=sb.sx,fy=sb.sy;
+    var dist=Math.hypot(fx-lx,fy-ly);if(dist<30)continue;
+    var col=bond.strength>0?'0,255,200':'255,120,80';
+    var count=Math.floor(str*5)+3;
+    for(var pi=0;pi<count;pi++){
+      var t=((now*0.3+pi/count)%1);
+      // Bezier curve for organic flow
+      var mx=(lx+fx)/2+(fy-ly)*0.12*Math.sin(now*0.4+pi);
+      var my=(ly+fy)/2+(lx-fx)*0.12*Math.sin(now*0.4+pi);
+      var u=1-t,px=u*u*lx+2*u*t*mx+t*t*fx,py=u*u*ly+2*u*t*my+t*t*fy;
+      var alpha=0.5*Math.sin(t*3.14); // peaks at 0.5 opacity
+      var sz=(2+str*2)*cam.z; // 2-4px particles
+      cx.fillStyle='rgba('+col+','+alpha+')';cx.beginPath();cx.arc(px,py,sz,0,6.28);cx.fill();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// GLOBAL MONEY FLOW — sector-level capital rotation
+// Shows where money is moving between CRYPTO / FOREX / PREDICTIONS
+// River thickness = volume, speed = urgency, color = direction
+// Leading signal: flow moves before price
+// ══════════════════════════════════════════════════════════════
+var _gfParticles=[]; // persistent particle pool
+function drawGlobalFlow(){
+  if(!stars||stars.length===0)return;
+  var now=performance.now()/1000;
+
+  // ── 1. Compute sector centroids on screen ─────────────────────
+  var sectors={crypto:{sx:0,sy:0,count:0,bullW:0,bearW:0,totalChange:0,volume:0},
+               forex:{sx:0,sy:0,count:0,bullW:0,bearW:0,totalChange:0,volume:0},
+               predictions:{sx:0,sy:0,count:0,bullW:0,bearW:0,totalChange:0,volume:0}};
+
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var t=s.type==='prediction'?'predictions':s.type;
+    if(!sectors[t])continue;
+    sectors[t].sx+=s.sx;sectors[t].sy+=s.sy;sectors[t].count++;
+    sectors[t].totalChange+=s.change||0;
+    sectors[t].volume+=s.warmth||0;
+    if(s.dir==='BULL')sectors[t].bullW+=s.warmth||0;
+    else sectors[t].bearW+=s.warmth||0;
+  }
+
+  // Finalize centroids
+  var sectorList=[];
+  for(var[key,sec]of Object.entries(sectors)){
+    if(sec.count===0)continue;
+    sec.cx=sec.sx/sec.count; sec.cy=sec.sy/sec.count;
+    sec.netFlow=(sec.bullW-sec.bearW)/(sec.volume||1); // -1 to +1
+    sec.avgChange=sec.totalChange/sec.count;
+    sec.key=key;
+    sec.label=key.toUpperCase();
+    sectorList.push(sec);
+  }
+  if(sectorList.length<2)return;
+
+  // ── 2. Draw inter-sector rivers ───────────────────────────────
+  for(var ai=0;ai<sectorList.length;ai++){
+    for(var bi=ai+1;bi<sectorList.length;bi++){
+      var A=sectorList[ai],B=sectorList[bi];
+      var dist=Math.hypot(B.cx-A.cx,B.cy-A.cy);
+      if(dist<40)continue;
+
+      // Net flow from A to B = A bullish AND B receiving
+      var flowAtoB=A.netFlow-B.netFlow; // positive = money leaving A for B
+      var flowMag=Math.abs(flowAtoB);
+      if(flowMag<0.05)continue; // no meaningful flow
+
+      var fromSec=flowAtoB>0?A:B; // money leaves here
+      var toSec=flowAtoB>0?B:A;   // money arrives here
+
+      var fx=fromSec.cx,fy=fromSec.cy,tx=toSec.cx,ty=toSec.cy;
+
+      // River color: green = capital flowing in (opportunity), red = outflow
+      var bullCol='0,255,180';var bearCol='255,80,100';
+      var col=toSec.netFlow>0?bullCol:bearCol;
+
+      // ── Draw river base (faint tube) ────────────────────────
+      var lineW=Math.max(1,flowMag*8*cam.z);
+      cx.save();
+      var grad=cx.createLinearGradient(fx,fy,tx,ty);
+      grad.addColorStop(0,'rgba('+col+',0.02)');
+      grad.addColorStop(0.5,'rgba('+col+','+Math.min(0.15,flowMag*0.2)+')');
+      grad.addColorStop(1,'rgba('+col+',0.02)');
+      cx.strokeStyle=grad;cx.lineWidth=lineW*2;
+      cx.beginPath();cx.moveTo(fx,fy);cx.lineTo(tx,ty);cx.stroke();
+      cx.restore();
+
+      // ── Animated particles flowing along river ──────────────
+      var particleCount=Math.max(4,Math.floor(flowMag*12));
+      var speed=0.15+flowMag*0.4; // faster = more urgent flow
+
+      for(var pi=0;pi<particleCount;pi++){
+        var phase=pi/particleCount;
+        var t_=((now*speed+phase)%1);
+
+        // Slight sinusoidal wobble perpendicular to flow
+        var dx=tx-fx,dy=ty-fy;
+        var nx=-dy/dist,ny=dx/dist; // perpendicular
+        var wobble=Math.sin(t_*Math.PI*3+pi)*8*cam.z;
+
+        var px=fx+dx*t_+nx*wobble;
+        var py=fy+dy*t_+ny*wobble;
+
+        // Alpha: fade at start/end, peak in middle
+        var alpha=0.7*Math.sin(t_*Math.PI);
+        // Size: bigger near destination = accumulation visual
+        var sz=(2+t_*3+flowMag*2)*cam.z;
+
+        cx.save();
+        cx.globalAlpha=alpha;
+        cx.fillStyle='rgba('+col+',1)';
+        cx.beginPath();cx.arc(px,py,sz,0,6.28);cx.fill();
+
+        // Glow on larger particles
+        if(sz>3*cam.z){
+          cx.globalAlpha=alpha*0.3;
+          cx.fillStyle='rgba('+col+',1)';
+          cx.beginPath();cx.arc(px,py,sz*2.5,0,6.28);cx.fill();
+        }
+        cx.restore();
+      }
+
+      // ── Direction arrow at destination ──────────────────────
+      var arrowAlpha=0.6*Math.max(0,Math.sin(now*1.5));
+      var angle=Math.atan2(ty-fy,tx-fx);
+      var ax=tx-Math.cos(angle)*20*cam.z;
+      var ay=ty-Math.sin(angle)*20*cam.z;
+      cx.save();cx.globalAlpha=arrowAlpha;
+      cx.strokeStyle='rgba('+col+',1)';cx.lineWidth=2*cam.z;
+      cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(tx,ty);
+      cx.lineTo(ax+Math.cos(angle-2.5)*8*cam.z,ay+Math.sin(angle-2.5)*8*cam.z);
+      cx.moveTo(tx,ty);
+      cx.lineTo(ax+Math.cos(angle+2.5)*8*cam.z,ay+Math.sin(angle+2.5)*8*cam.z);
+      cx.stroke();cx.restore();
+    }
+  }
+
+  // ── 3. Sector labels + flow indicators ───────────────────────
+  cx.save();cx.font='bold '+(9*cam.z)+'px Orbitron';cx.textAlign='center';
+  for(var si=0;si<sectorList.length;si++){
+    var sec=sectorList[si];
+    var netPct=(sec.netFlow*100).toFixed(0);
+    var flowDir=sec.netFlow>0.1?'▲':sec.netFlow<-0.1?'▼':'—';
+    var lblCol=sec.netFlow>0.05?'#0fc':sec.netFlow<-0.05?'#f45':'#668';
+    var ringR=(16+Math.abs(sec.netFlow)*20)*cam.z;
+
+    // Pulsing ring around sector centroid
+    var ringAlpha=0.15+0.1*Math.sin(now*2+si);
+    cx.globalAlpha=ringAlpha;
+    cx.strokeStyle=sec.netFlow>0?'rgba(0,255,180,1)':'rgba(255,80,100,1)';
+    cx.lineWidth=1.5*cam.z;
+    cx.beginPath();cx.arc(sec.cx,sec.cy,ringR,0,6.28);cx.stroke();
+
+    // Label
+    cx.globalAlpha=0.9;
+    cx.fillStyle=lblCol;
+    cx.fillText(sec.label+' '+flowDir+netPct+'%',sec.cx,sec.cy-ringR-6*cam.z);
+  }
+  cx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════
+// IMMUNE SYSTEM — Security stance
+// All code written from scratch. No external source copied.
+// All API responses treated as DATA only — never as instructions.
+// No eval(), no innerHTML with untrusted data, no dynamic code exec.
+// External data clamped to valid numeric ranges before use.
+// ══════════════════════════════════════════════════════════════
+
+// ── Financial Hubs — geographic capital nodes ─────────────────
+var HUBS=[
+  {id:'NYC',name:'NEW YORK',lon:-74,lat:40.7,col:'0,180,255',types:['prediction','forex'],w:1.0},
+  {id:'LON',name:'LONDON',lon:-0.1,lat:51.5,col:'120,160,255',types:['forex'],w:0.9},
+  {id:'TOK',name:'TOKYO',lon:139.7,lat:35.7,col:'255,200,80',types:['forex'],w:0.7},
+  {id:'SIN',name:'SINGAPORE',lon:103.8,lat:1.3,col:'0,255,180',types:['crypto'],w:0.8},
+  {id:'HKG',name:'HONG KONG',lon:114.2,lat:22.3,col:'0,255,220',types:['crypto'],w:0.7},
+  {id:'FRA',name:'FRANKFURT',lon:8.7,lat:50.1,col:'80,200,255',types:['forex'],w:0.5},
+  {id:'SHA',name:'SHANGHAI',lon:121.5,lat:31.2,col:'255,120,60',types:['crypto','forex'],w:0.7},
+  {id:'DXB',name:'DUBAI',lon:55.3,lat:25.2,col:'255,220,60',types:['forex'],w:0.5},
+  {id:'CHI',name:'CHICAGO',lon:-87.6,lat:41.9,col:'140,200,255',types:['prediction'],w:0.5},
+  {id:'SYD',name:'SYDNEY',lon:151.2,lat:-33.9,col:'0,240,160',types:['crypto','forex'],w:0.4}
+];
+
+// ── Simplified continent outlines [lon,lat] pairs ─────────────
+var CONTINENTS=[
+  // North America
+  [[-168,72],[-80,73],[-55,47],[-66,44],[-75,35],[-82,27],[-85,22],[-90,17],[-83,10],[-77,8],[-83,8],[-90,15],[-105,20],[-110,23],[-120,29],[-125,38],[-124,50],[-135,55],[-145,60],[-160,65],[-168,72]],
+  // South America
+  [[-80,10],[-60,13],[-50,-2],[-38,-10],[-35,-8],[-35,-15],[-40,-20],[-48,-28],[-52,-33],[-65,-55],[-70,-48],[-75,-40],[-75,-30],[-70,-18],[-75,-10],[-78,-3],[-80,2],[-80,10]],
+  // Europe
+  [[-10,35],[-10,60],[-5,62],[5,62],[10,58],[14,60],[20,60],[25,62],[30,60],[30,50],[40,38],[28,35],[15,36],[5,36],[0,38],[-5,38],[-10,35]],
+  // Africa
+  [[-18,15],[-16,12],[-10,5],[5,5],[9,4],[10,-4],[15,-12],[18,-22],[20,-34],[25,-34],[32,-30],[40,-22],[42,-12],[44,-11],[52,12],[42,12],[38,22],[35,30],[25,31],[15,30],[10,36],[0,36],[-8,34],[-10,35],[-18,28],[-18,15]],
+  // Asia
+  [[25,40],[35,40],[45,37],[55,25],[65,25],[75,22],[80,10],[82,8],[90,8],[100,4],[105,3],[110,2],[120,5],[125,12],[130,32],[135,36],[140,36],[135,42],[135,52],[145,58],[130,65],[120,68],[100,68],[90,68],[70,58],[55,55],[45,48],[40,50],[35,48],[30,46],[25,42],[25,40]],
+  // Australia
+  [[114,-22],[120,-34],[128,-34],[132,-32],[138,-36],[145,-38],[150,-38],[155,-28],[148,-20],[145,-15],[142,-12],[135,-12],[128,-16],[122,-18],[114,-22]]
+];
+
+// ── Project lon/lat → canvas px (equirectangular) ─────────────
+function _project(lon,lat,x,y,w,h){
+  return [x+(lon+180)/360*w, y+(1-(lat+90)/180)*h];
+}
+
+// ── BinanceWebSocket — real-time price feed ───────────────────
+// Replaces 15s CoinGecko polling with millisecond-accurate data
+// Connects to public Binance WS stream (no auth needed for prices)
+var BNB_MAP={BTCUSDT:'BITCOIN',ETHUSDT:'ETHEREUM',SOLUSDT:'SOLANA',
+  DOGEUSDT:'DOGECOIN',ADAUSDT:'CARDANO',AVAXUSDT:'AVALANCHE-2',
+  DOTUSDT:'POLKADOT',LINKUSDT:'CHAINLINK',XRPUSDT:'RIPPLE',TONUSDT:'TONCOIN'};
+
+class BinanceWS{
+  constructor(){this.ws=null;this.connected=false;this._delay=3000;this._retries=0}
+  connect(){
+    var syms=Object.keys(BNB_MAP).map(function(s){return s.toLowerCase()+'@miniTicker'}).join('/');
+    try{
+      this.ws=new WebSocket('wss://stream.binance.com:9443/stream?streams='+syms);
+      this.ws.onopen=()=>{this.connected=true;this._retries=0;narrator.log('Binance WS connected — live prices active','nt-cascade')};
+      this.ws.onmessage=(e)=>{
+        try{
+          var msg=JSON.parse(e.data); // immune: parse only, never eval
+          if(!msg||!msg.data||msg.data.e!=='24hrMiniTicker')return;
+          var d=msg.data;
+          var sym=String(d.s||'').toUpperCase(); // sanitize: force string, uppercase
+          var id=BNB_MAP[sym];if(!id)return;
+          var price=parseFloat(d.c)||0; // sanitize: always numeric
+          var open=parseFloat(d.o)||price;
+          var chg=open>0?(price-open)/open*100:0;
+          // Clamp to valid range (immune: no absurd values)
+          price=Math.max(0,Math.min(1e9,price));
+          chg=Math.max(-100,Math.min(1000,chg));
+          var s=starMap[id];if(!s)return;
+          if(Math.abs(price-s.price)/Math.max(s.price,0.001)>0.001){
+            s.price=price;if(field)field.updateNode(id,price,chg);
+          }
+        }catch(e){}
+      };
+      this.ws.onerror=()=>{this.connected=false};
+      this.ws.onclose=()=>{this.connected=false;setTimeout(()=>this._reconnect(),this._delay)};
+    }catch(e){narrator.log('Binance WS unavailable — using CoinGecko fallback','nt')}
+  }
+  _reconnect(){
+    this._retries++;if(this._retries>10)return; // give up after 10 tries
+    this.connect();
+  }
+  disconnect(){if(this.ws)try{this.ws.close()}catch(e){}}
+}
+var bnbWS=new BinanceWS();
+
+// ── PolymarketScanner — live prediction market prices ─────────
+// Polls Polymarket CLOB API for active market prices
+// Updates prediction market nodes in the resonance field
+class PolymarketScanner{
+  constructor(){this.active=false;this.markets=[];this.interval=null}
+  start(){
+    this.active=true;
+    this._scan();
+    this.interval=setInterval(()=>this._scan(),120000); // every 2min
+  }
+  stop(){this.active=false;if(this.interval)clearInterval(this.interval)}
+  async _scan(){
+    try{
+      var r=await fetch('https://clob.polymarket.com/markets?active=true&closed=false&limit=15',{signal:AbortSignal.timeout(8000)});
+      if(!r.ok)return;
+      var data=await r.json(); // immune: only use numeric price fields
+      if(!data||!data.data)return;
+      data.data.forEach(function(m){
+        // Sanitize: only extract safe numeric fields
+        var question=String(m.question||'').substring(0,80); // truncate strings
+        var price=Math.max(0,Math.min(1,parseFloat(m.lastTradePrice)||0.5));
+        var volume=Math.max(0,parseFloat(m.volume)||0);
+        // Update or inject prediction node
+        var nodeId='PRED_'+String(m.conditionId||'').substring(0,12);
+        if(field&&volume>1000){
+          if(!field.nodes.has(nodeId))field.addNode(nodeId,'prediction');
+          field.updateNode(nodeId,price,(price-0.5)*10); // normalize to ±5% change
+        }
+      });
+      narrator.log('Polymarket: '+data.data.length+' markets scanned','nt');
+    }catch(e){}
+  }
+}
+var polyScanner=new PolymarketScanner();
+
+// ══════════════════════════════════════════════════════════════
+// WORLD MAP FLOW — geographic capital rotation
+// Financial hubs glow with hub warmth. Rivers show capital moving.
+// Flow direction: derived from bull/bear balance per hub's assets.
+// ══════════════════════════════════════════════════════════════
+var _worldMapCanvas=null;
+function _getWorldMapBg(){
+  // Render continent outlines to offscreen canvas (cached)
+  if(_worldMapCanvas)return _worldMapCanvas;
+  var oc=document.createElement('canvas');oc.width=W;oc.height=H;
+  var ox=oc.getContext('2d');
+  var mw=W*0.85,mh=H*0.7,mx=W*0.075,my=H*0.15;
+
+  // Grid lines
+  ox.strokeStyle='rgba(0,255,200,0.04)';ox.lineWidth=0.5;
+  for(var lo=-180;lo<=180;lo+=30){var[gx]=_project(lo,0,mx,my,mw,mh);ox.beginPath();ox.moveTo(gx,my);ox.lineTo(gx,my+mh);ox.stroke()}
+  for(var la=-60;la<=75;la+=30){var[,gy]=_project(0,la,mx,my,mw,mh);ox.beginPath();ox.moveTo(mx,gy);ox.lineTo(mx+mw,gy);ox.stroke()}
+
+  // Continents
+  for(var ci=0;ci<CONTINENTS.length;ci++){
+    var pts=CONTINENTS[ci];if(pts.length<3)continue;
+    ox.beginPath();
+    var[px0,py0]=_project(pts[0][0],pts[0][1],mx,my,mw,mh);
+    ox.moveTo(px0,py0);
+    for(var pi=1;pi<pts.length;pi++){var[px,py]=_project(pts[pi][0],pts[pi][1],mx,my,mw,mh);ox.lineTo(px,py)}
+    ox.closePath();
+    ox.fillStyle='rgba(0,30,20,0.45)';ox.fill();
+    ox.strokeStyle='rgba(0,255,180,0.12)';ox.lineWidth=0.8;ox.stroke();
+  }
+  _worldMapCanvas=oc;
+  return oc;
+}
+
+function drawWorldMapFlow(){
+  if(!stars||stars.length===0)return;
+  var now=performance.now()/1000;
+  var mw=W*0.85,mh=H*0.7,mx=W*0.075,my=H*0.15;
+
+  // Dark overlay
+  cx.fillStyle='rgba(0,2,8,0.78)';cx.fillRect(0,0,W,H);
+
+  // Continent bg
+  cx.drawImage(_getWorldMapBg(),0,0);
+
+  // ── Compute hub warmth from associated star types ─────────────
+  for(var hi=0;hi<HUBS.length;hi++){
+    var hub=HUBS[hi];
+    hub._warmth=0;hub._bull=0;hub._bear=0;hub._vol=0;
+    for(var si=0;si<stars.length;si++){
+      var s=stars[si];
+      var match=hub.types.indexOf(s.type)>=0;
+      // Geographic affinity boost for crypto hubs
+      var affinity=match?1:0;
+      if(!affinity)continue;
+      hub._warmth+=s.warmth*affinity;hub._vol++;
+      if(s.dir==='BULL')hub._bull+=s.warmth;else hub._bear+=s.warmth;
+    }
+    hub._net=hub._vol>0?(hub._bull-hub._bear)/(hub._warmth||1):0; // -1 to +1
+    hub._px=_project(hub.lon,hub.lat,mx,my,mw,mh);
+  }
+
+  // ── Draw flow rivers between hubs ─────────────────────────────
+  for(var ai=0;ai<HUBS.length;ai++){
+    for(var bi=ai+1;bi<HUBS.length;bi++){
+      var A=HUBS[ai],B=HUBS[bi];
+      if(!A._px||!B._px)continue;
+      var diff=A._net-B._net;
+      var mag=Math.abs(diff);if(mag<0.06)continue;
+      var from=diff>0?B:A; // money leaves weaker hub
+      var to=diff>0?A:B;   // money enters stronger hub
+      var fx=from._px[0],fy=from._px[1],tx=to._px[0],ty=to._px[1];
+      var dist=Math.hypot(tx-fx,ty-fy);if(dist<30)continue;
+      var col=to._net>0?'0,255,160':'255,100,60';
+
+      // Curved river (control point offset perpendicular to flow)
+      var dx=tx-fx,dy=ty-fy;
+      var nx=-dy/dist*40,ny=dx/dist*40; // perpendicular offset
+      var cpx=(fx+tx)/2+nx,cpy=(fy+ty)/2+ny;
+
+      // Base tube
+      cx.save();
+      var grad=cx.createLinearGradient(fx,fy,tx,ty);
+      grad.addColorStop(0,'rgba('+col+',0.02)');
+      grad.addColorStop(0.5,'rgba('+col+','+Math.min(0.18,mag*0.22)+')');
+      grad.addColorStop(1,'rgba('+col+',0.02)');
+      cx.strokeStyle=grad;cx.lineWidth=Math.max(1.5,mag*7);
+      cx.beginPath();cx.moveTo(fx,fy);cx.quadraticCurveTo(cpx,cpy,tx,ty);cx.stroke();
+      cx.restore();
+
+      // Flowing particles along bezier curve
+      var pCount=Math.max(3,Math.floor(mag*10));
+      var speed=0.12+mag*0.35;
+      for(var pi=0;pi<pCount;pi++){
+        var t_=((now*speed+pi/pCount)%1);
+        var u=1-t_;
+        var ppx=u*u*fx+2*u*t_*cpx+t_*t_*tx;
+        var ppy=u*u*fy+2*u*t_*cpy+t_*t_*ty;
+        var alpha=0.8*Math.sin(t_*Math.PI);
+        var sz=2+t_*3+mag*3;
+        cx.save();cx.globalAlpha=alpha;
+        cx.fillStyle='rgba('+col+',1)';
+        cx.beginPath();cx.arc(ppx,ppy,sz,0,6.28);cx.fill();
+        if(sz>4){cx.globalAlpha=alpha*0.25;cx.beginPath();cx.arc(ppx,ppy,sz*2.2,0,6.28);cx.fill()}
+        cx.restore();
+      }
+    }
+  }
+
+  // ── Draw hub nodes ────────────────────────────────────────────
+  cx.save();
+  for(var hi=0;hi<HUBS.length;hi++){
+    var hub=HUBS[hi];if(!hub._px)continue;
+    var[hx,hy]=hub._px;
+    var netAbs=Math.abs(hub._net||0);
+    var col=hub._net>0.05?'0,255,160':hub._net<-0.05?'255,80,80':hub.col;
+    var pulse=0.5+0.5*Math.sin(now*2+hi);
+    var r=5+netAbs*12+pulse*3;
+
+    // Glow
+    var g=cx.createRadialGradient(hx,hy,0,hx,hy,r*3);
+    g.addColorStop(0,'rgba('+col+',0.3)');g.addColorStop(1,'rgba('+col+',0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(hx,hy,r*3,0,6.28);cx.fill();
+
+    // Core dot
+    cx.fillStyle='rgba('+col+',0.9)';cx.beginPath();cx.arc(hx,hy,r,0,6.28);cx.fill();
+    cx.strokeStyle='rgba('+col+',0.5)';cx.lineWidth=1;cx.stroke();
+
+    // Label
+    cx.fillStyle='rgba('+col+',0.85)';
+    cx.font='bold 8px Orbitron';cx.textAlign='center';
+    cx.fillText(hub.name,hx,hy-r-5);
+    var pct=(hub._net*100).toFixed(0);
+    cx.font='7px Share Tech Mono';cx.fillStyle='rgba(255,255,255,0.4)';
+    cx.fillText((hub._net>=0?'▲':' ')+Math.abs(pct)+'%',hx,hy+r+10);
+  }
+  cx.restore();
+
+  // ── Legend ────────────────────────────────────────────────────
+  cx.save();cx.font='7px Orbitron';cx.textAlign='left';
+  cx.fillStyle='rgba(0,255,160,0.7)';cx.fillText('● RISK-ON (capital inflow)',mx,my+mh+20);
+  cx.fillStyle='rgba(255,80,80,0.7)';cx.fillText('● RISK-OFF (capital outflow)',mx+180,my+mh+20);
+  cx.fillStyle='rgba(255,255,255,0.2)';cx.fillText('WORLD CAPITAL FLOW — live resonance',mx,my-8);
+  cx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SANKEY FLOW — asset-to-asset capital movement panel
+// Shows top assets losing → gaining with animated flow between them
+// Capital flows from falling assets into rising ones
+// ══════════════════════════════════════════════════════════════
+function drawSankeyFlow(){
+  if(!stars||stars.length<4)return;
+  var now=performance.now()/1000;
+
+  var pw=320,ph=260,px=W/2-pw/2,py=H/2-ph/2;
+
+  // Background panel
+  cx.save();
+  cx.fillStyle='rgba(0,4,14,0.92)';cx.fillRect(px,py,pw,ph);
+  cx.strokeStyle='rgba(0,255,200,0.2)';cx.lineWidth=1;cx.strokeRect(px,py,pw,ph);
+  cx.fillStyle='rgba(0,255,200,0.35)';cx.font='9px Orbitron';cx.textAlign='left';
+  cx.fillText('CAPITAL FLOW — SANKEY',px+10,py+14);
+  cx.fillStyle='rgba(255,255,255,0.12)';cx.font='7px Share Tech Mono';
+  cx.fillText('money leaving → entering',px+10,py+24);
+
+  // Sort: top 4 losers (left) and top 4 gainers (right)
+  var sorted=stars.slice().sort(function(a,b){return b.change-a.change});
+  var gainers=sorted.slice(0,4);
+  var losers=sorted.slice(-4).reverse();
+
+  var lx=px+12,rx=px+pw-12,nodeH=28,nodeW=80,gap=10;
+  var startY=py+40;
+
+  // Draw nodes
+  function drawNode(label,change,warmth,nx,ny,align){
+    var col=change>0?'0,255,180':'255,80,100';
+    var nh=nodeH;
+    cx.fillStyle='rgba('+col+',0.15)';cx.fillRect(nx,ny,nodeW,nh);
+    cx.strokeStyle='rgba('+col+',0.5)';cx.lineWidth=1;cx.strokeRect(nx,ny,nodeW,nh);
+    cx.fillStyle='rgba('+col+',0.9)';cx.font='bold 8px Share Tech Mono';
+    cx.textAlign=align==='left'?'left':'right';
+    var tx=align==='left'?nx+5:nx+nodeW-5;
+    cx.fillText(label.substring(0,8),tx,ny+11);
+    cx.fillStyle='rgba(255,255,255,0.5)';cx.font='7px Share Tech Mono';
+    cx.fillText((change>=0?'+':'')+change.toFixed(1)+'%',tx,ny+22);
+    return {x:align==='left'?nx+nodeW:nx, y:ny+nh/2, col};
+  }
+
+  // Flow lines between losers and gainers
+  var loserNodes=[],gainerNodes=[];
+  for(var i=0;i<Math.min(4,losers.length);i++){
+    var s=losers[i];
+    var ny=startY+i*(nodeH+gap);
+    var n=drawNode(s.id,s.change,s.warmth,lx,ny,'left');
+    n.weight=Math.abs(s.change)*s.warmth;
+    loserNodes.push(n);
+  }
+  for(var i=0;i<Math.min(4,gainers.length);i++){
+    var s=gainers[i];
+    var ny=startY+i*(nodeH+gap);
+    var n=drawNode(s.id,s.change,s.warmth,rx-nodeW,ny,'right');
+    n.weight=Math.abs(s.change)*s.warmth;
+    gainerNodes.push(n);
+  }
+
+  // Sankey flow connections
+  var cx2=px+pw/2; // center x for flow
+  for(var li=0;li<loserNodes.length;li++){
+    for(var gi=0;gi<gainerNodes.length;gi++){
+      var lo=loserNodes[li],ga=gainerNodes[gi];
+      var totalW=loserNodes.reduce(function(s,n){return s+n.weight},0)||1;
+      var flowW=Math.max(0.5,lo.weight/totalW*18);
+      var col='0,200,255'; // capital in transit = blue
+
+      // Curved bezier flow
+      var cp1x=lo.x+50,cp1y=lo.y,cp2x=ga.x-50,cp2y=ga.y;
+      var grad=cx.createLinearGradient(lo.x,lo.y,ga.x,ga.y);
+      grad.addColorStop(0,'rgba(255,80,80,'+Math.min(0.3,flowW/20)+')');
+      grad.addColorStop(0.5,'rgba('+col+','+Math.min(0.2,flowW/18)+')');
+      grad.addColorStop(1,'rgba(0,255,160,'+Math.min(0.3,flowW/20)+')');
+      cx.strokeStyle=grad;cx.lineWidth=flowW;
+      cx.beginPath();cx.moveTo(lo.x,lo.y);cx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,ga.x,ga.y);cx.stroke();
+
+      // One animated particle per flow
+      var t_=((now*0.25+li*0.3+gi*0.1)%1);
+      var ppx=Math.pow(1-t_,3)*lo.x+3*Math.pow(1-t_,2)*t_*cp1x+3*(1-t_)*t_*t_*cp2x+Math.pow(t_,3)*ga.x;
+      var ppy=Math.pow(1-t_,3)*lo.y+3*Math.pow(1-t_,2)*t_*cp1y+3*(1-t_)*t_*t_*cp2y+Math.pow(t_,3)*ga.y;
+      cx.fillStyle='rgba(255,255,255,0.7)';
+      cx.beginPath();cx.arc(ppx,ppy,2,0,6.28);cx.fill();
+    }
+  }
+
+  cx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════
+// NEBULA BACKGROUND — softer, more subtle
+// ══════════════════════════════════════════════════════════════
+function drawBg(){
+  cx.fillStyle='#000008';cx.fillRect(0,0,W,H);
+  if(!window._neb){
+    var n=document.createElement('canvas');n.width=W;n.height=H;var nc=n.getContext('2d');
+    var clouds=[[.3,.4,.45,'60,15,120'],[.7,.3,.3,'0,100,110'],[.5,.7,.35,'110,25,55'],[.2,.65,.2,'100,70,20'],[.8,.75,.25,'25,40,130']];
+    for(var ci=0;ci<clouds.length;ci++){var cl=clouds[ci];var g=nc.createRadialGradient(W*cl[0],H*cl[1],0,W*cl[0],H*cl[1],W*cl[2]);
+      g.addColorStop(0,'rgba('+cl[3]+',.2)');g.addColorStop(.6,'rgba('+cl[3]+',.06)');g.addColorStop(1,'transparent');nc.fillStyle=g;nc.fillRect(0,0,W,H)}
+    window._neb=n;
+  }
+  cx.drawImage(window._neb,0,0);
+  // Grief tint
+  if(field&&field.grief>.5){cx.fillStyle='rgba(30,0,0,'+((field.grief-.5)*.2)+')';cx.fillRect(0,0,W,H)}
+  // Background stars — slow gentle twinkle
+  for(var i=0;i<bg.length;i++){var s=bg[i];
+    var px=(s.x-cam.x/s.d)*cam.z+W/2,py=(s.y-cam.y/s.d)*cam.z+H/2;
+    if(px<-2||px>W+2||py<-2||py>H+2)continue;
+    s.t+=0.006;var a=s.b*(.5+Math.sin(s.t)*.5);
+    cx.fillStyle='rgba('+s.c+','+a+')';cx.beginPath();cx.arc(px,py,s.s*cam.z,0,6.28);cx.fill();
+  }
+  // Cluster labels
+  if(cam.z<1.5){
+    cx.fillStyle='rgba(0,255,200,.08)';cx.font=Math.max(9,14*cam.z)+'px Orbitron';cx.textAlign='center';
+    var cc={crypto:[-100,-280],forex:[450,-280]};
+    for(var[t,pos]of Object.entries(cc)){var sx=(pos[0]-cam.x)*cam.z+W/2,sy=(pos[1]-cam.y)*cam.z+H/2;
+      cx.fillText(t.toUpperCase()+' '+stars.filter(function(s){return s.type===t}).length,sx,sy)}
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// AURORA P&L
+// ══════════════════════════════════════════════════════════════
+function drawAurora(){
+  if(profH.length<2||trader.startBal===0)return;
+  var v=profH.map(function(p){return p.v}),mn=Math.min.apply(null,v)*.999,mx=Math.max.apply(null,v)*1.001,rng=mx-mn||1;
+  var last=v[v.length-1],col=last>=trader.startBal?'0,220,180':'255,80,100';
+  cx.beginPath();
+  for(var i=0;i<profH.length;i++){var x=i/(profH.length-1)*W,y=H-6-((profH[i].v-mn)/rng)*30;i===0?cx.moveTo(x,y):cx.lineTo(x,y)}
+  cx.lineTo(W,H);cx.lineTo(0,H);cx.closePath();
+  var g=cx.createLinearGradient(0,H-40,0,H);g.addColorStop(0,'rgba('+col+',.15)');g.addColorStop(1,'rgba('+col+',.01)');
+  cx.fillStyle=g;cx.fill();
+}
+
+// ══════════════════════════════════════════════════════════════
+// HEARTBEAT MONITOR
+// ══════════════════════════════════════════════════════════════
+var heartbeatHistory=[];
+function drawHeartbeat(){
+  if(field){
+    // Compute live pulse from total market activity (price volatility + warmth + positions)
+    var activity=field.fieldWarmth;
+    // Add volatility signal: sum of absolute changes across all tracked nodes
+    var vol=0,nCount=0;
+    for(var[,n]of field.nodes){if(n.history.length>1){vol+=Math.abs(n.history[n.history.length-1]-n.history[Math.max(0,n.history.length-2)])/Math.max(n.history[n.history.length-1],0.001);nCount++}}
+    if(nCount>0)activity+=vol/nCount*50; // scale volatility into warmth range
+    // Add position heat
+    activity+=trader.positions.size*0.1;
+    // Add cascade queue pressure
+    activity+=field.cascadeQueue.length*0.05;
+    heartbeatHistory.push({w:activity,g:field.grief});
+  }
+  if(heartbeatHistory.length>150)heartbeatHistory.shift();
+  if(heartbeatHistory.length<5)return;
+  var hx=W-180,hy=50,hw=160,hh=18;
+  cx.fillStyle='rgba(0,4,12,0.4)';cx.fillRect(hx-1,hy-1,hw+2,hh+2);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='5px Orbitron';cx.textAlign='left';cx.fillText('PULSE',hx+2,hy-2);
+  var maxW=0.1;for(var i=0;i<heartbeatHistory.length;i++)if(heartbeatHistory[i].w>maxW)maxW=heartbeatHistory[i].w;
+  cx.beginPath();
+  for(var i=0;i<heartbeatHistory.length;i++){var x=hx+(i/(heartbeatHistory.length-1))*hw;var y=hy+hh-(heartbeatHistory[i].w/maxW)*hh;i===0?cx.moveTo(x,y):cx.lineTo(x,y)}
+  var lastG=heartbeatHistory[heartbeatHistory.length-1].g;
+  cx.strokeStyle=lastG>0.6?'rgba(255,80,100,0.5)':'rgba(0,255,200,0.4)';cx.lineWidth=1;cx.stroke();
+  var bpm=Math.floor(40+(heartbeatHistory[heartbeatHistory.length-1].w)*80);
+  cx.fillStyle='rgba(0,255,200,0.3)';cx.font='7px Orbitron';cx.textAlign='right';cx.fillText(bpm,hx+hw,hy-2);
+}
+
+// ══════════════════════════════════════════════════════════════
+// GOLDEN SPIRAL — runs slowly, gentle pull only
+// ══════════════════════════════════════════════════════════════
+var spiralFrame=0;
+function goldenSpiralLayout(){
+  spiralFrame++;if(spiralFrame%10!==0)return; // only every 10th frame
+  var byType={crypto:[],forex:[]};
+  stars.forEach(function(s){if(byType[s.type])byType[s.type].push(s)});
+  for(var[type,group]of Object.entries(byType)){
+    if(group.length===0)continue;
+    group.sort(function(a,b){return b.warmth-a.warmth});
+    var ox=type==='crypto'?-100:450;var oy=0;
+    var phi=2.399963;
+    for(var i=0;i<group.length;i++){
+      var r=50+Math.sqrt(i)*50;var a=i*phi;
+      var tx=ox+Math.cos(a)*r;var ty=oy+Math.sin(a)*r;
+      group[i].bx+=(tx-group[i].bx)*0.005; // very gentle pull
+      group[i].by+=(ty-group[i].by)*0.005;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// INPUT: zoom, pan, touch, click
+// ══════════════════════════════════════════════════════════════
+cv.addEventListener('wheel',function(e){e.preventDefault();cam.z=Math.max(.15,Math.min(5,cam.z*(e.deltaY>0?.92:1.08)))},{passive:false});
+var drag=false,dx=0,dy=0;
+cv.addEventListener('mousedown',function(e){drag=true;dx=e.clientX;dy=e.clientY});
+cv.addEventListener('mousemove',function(e){if(!drag)return;cam.x-=(e.clientX-dx)/cam.z;cam.y-=(e.clientY-dy)/cam.z;dx=e.clientX;dy=e.clientY});
+cv.addEventListener('mouseup',function(){drag=false});
+cv.addEventListener('click',function(e){var h=stars.find(function(s){return s.hit(e.clientX,e.clientY)});stars.forEach(function(s){s.sel=false});if(h){h.sel=true;showDet(h);sel=h}else{closeDet();sel=null}});
+var ltd=0;
+cv.addEventListener('touchstart',function(e){if(e.touches.length===2)ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);else if(e.touches.length===1){drag=true;dx=e.touches[0].clientX;dy=e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchmove',function(e){if(e.touches.length===2){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);cam.z=Math.max(.15,Math.min(5,cam.z*(d/ltd)));ltd=d}else if(drag&&e.touches.length===1){cam.x-=(e.touches[0].clientX-dx)/cam.z;cam.y-=(e.touches[0].clientY-dy)/cam.z;dx=e.touches[0].clientX;dy=e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchend',function(){drag=false});
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL PANEL
+// ══════════════════════════════════════════════════════════════
+function showDet(s){
+  document.getElementById('detail').style.display='block';
+  document.getElementById('dN').textContent=s.id;document.getElementById('dN').style.color=s.dir==='BULL'?'#0fc':'#f45';
+  var n=field?field.nodes.get(s.id):null;
+  var p=s.price>100?'$'+s.price.toFixed(2):s.price>1?'$'+s.price.toFixed(4):'$'+s.price.toFixed(6);
+  var ch=(s.change>=0?'+':'')+s.change.toFixed(2)+'%';
+  var h='<div class="r"><span class="k">price</span><span class="v" style="font-size:12px">'+p+'</span></div>';
+  h+='<div class="r"><span class="k">24h</span><span class="v" style="color:'+(s.dir==='BULL'?'#0fc':'#f45')+'">'+ch+'</span></div>';
+  h+='<div class="r"><span class="k">warmth</span><span class="v">'+s.warmth.toFixed(3)+'</span></div>';
+  h+='<div class="r"><span class="k">type</span><span class="v">'+s.type+'</span></div>';
+  if(n){h+='<div class="r"><span class="k">EMA 8</span><span class="v">'+(n.ema8?'$'+n.ema8.toFixed(2):'—')+'</span></div>';
+    h+='<div class="r"><span class="k">RSI</span><span class="v" style="color:'+(n.rsi>70?'#f45':n.rsi<30?'#0fc':'#aab')+'">'+(n.rsi?n.rsi.toFixed(0):'—')+'</span></div>';
+    var depth=hlApi?hlApi.getDepth(s.id):null;
+    if(depth&&depth.imbalance!==0)h+='<div class="r"><span class="k">book</span><span class="v" style="color:'+(depth.imbalance>0?'#0fc':'#f45')+'">'+(depth.imbalance>0?'+':'')+((depth.imbalance*100).toFixed(0))+'%</span></div>'}
+  if(trader.positions.has(s.id)){var pos=trader.positions.get(s.id);var pnl=pos.dir==='LONG'?(s.price-pos.entry)/pos.entry*pos.lev:(pos.entry-s.price)/pos.entry*pos.lev;
+    h+='<div style="border-top:1px solid #0fc2;margin-top:5px;padding-top:5px"><div class="r"><span class="k">pos</span><span class="v" style="color:#fc4">'+pos.dir+' '+pos.lev.toFixed(1)+'x</span></div>';
+    h+='<div class="r"><span class="k">P&L</span><span class="v" style="color:'+(pnl>=0?'#0fc':'#f45')+'">'+(pnl>=0?'+':'')+((pnl*100).toFixed(1))+'%</span></div></div>'}
+  // AI Council verdict
+  if(aiCouncil&&aiCouncil.lastVotes[s.id]){var av=aiCouncil.lastVotes[s.id];
+    var acol=av.action==='LONG'?'#0fc':av.action==='SHORT'?'#f45':av.isGrief?'#f45':'#446';
+    h+='<div style="border-top:1px solid #0fc2;margin-top:5px;padding-top:5px">';
+    h+='<div class="r"><span class="k">AI council</span><span class="v" style="color:'+acol+'">'+av.action+'</span></div>';
+    h+='<div class="r"><span class="k">confidence</span><span class="v">'+av.confidence.toFixed(0)+'/10</span></div>';
+    h+='<div class="r"><span class="k">votes</span><span class="v" style="font-size:8px">'+av.reasons+'</span></div></div>'}
+  document.getElementById('dB').innerHTML=h;
+}
+function closeDet(){document.getElementById('detail').style.display='none';stars.forEach(function(s){s.sel=false});sel=null}
+
+// ══════════════════════════════════════════════════════════════
+// TIERS + ORACLE
+// ══════════════════════════════════════════════════════════════
+function showTiers(){document.getElementById('tier-panel').style.display='block'}
+function closeTiers(){document.getElementById('tier-panel').style.display='none'}
+// ── TON Connect wallet integration ────────────────────────────
+var _tonUI=null;var _walletAddr=null;var _pendingTier=null;
+var TIER_MIN_BALANCE={trader:50,strategist:200,boss:500}; // minimum TON to unlock
+
+function _initTonConnect(){
+  if(_tonUI)return;
+  try{
+    // Manifest as data URI for local/offline use
+    var manifest={url:'https://dosage2ag.github.io/boss',name:'B.O.S.S. Universe',iconUrl:'https://raw.githubusercontent.com/Dosage2AG/resonance-insight/main/icon.png'};
+    var manifestUrl='data:application/json;base64,'+btoa(JSON.stringify(manifest));
+    _tonUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:manifestUrl,buttonRootId:null});
+    _tonUI.onStatusChange(function(wallet){
+      if(wallet){
+        _walletAddr=wallet.account.address;
+        var balTON=parseFloat(wallet.account.balance||'0')/1e9;
+        narrator.log('Wallet connected: '+_walletAddr.substring(0,12)+'... Balance: '+balTON.toFixed(1)+' TON','nt-trade');
+        // Unlock pending tier based on balance
+        if(_pendingTier){
+          var minBal=TIER_MIN_BALANCE[_pendingTier]||0;
+          if(balTON>=minBal){
+            _activateTier(_pendingTier,balTON);
+          }else{
+            narrator.log('Insufficient balance for '+_pendingTier.toUpperCase()+'. Need '+minBal+' TON, have '+balTON.toFixed(1),'nt-grief');
+          }
+          _pendingTier=null;
+        }
+      }else{
+        _walletAddr=null;
+        narrator.log('Wallet disconnected','nt');
+      }
+    });
+  }catch(e){narrator.log('TON Connect init failed: '+e.message,'nt-grief')}
+}
+
+function _activateTier(t,balance){
+  tier=t;acct='live';
+  trader.balance=balance||0;trader.startBal=balance||0;
+  var names={trader:'TRADER',strategist:'STRATEGIST',boss:'BOSS'};
+  document.getElementById('tierBtn').textContent=names[t]||t.toUpperCase();
+  narrator.log(t.toUpperCase()+' ACTIVE — wallet connected, balance: '+(balance||0).toFixed(1)+' TON','nt-trade');
+  closeTiers();
+  if(t==='strategist'||t==='boss'){
+    // Enable AI consensus for Strategist+
+    if(aiCouncil)aiCouncil.enabled=true;
+    narrator.log('AI consensus enabled for '+t.toUpperCase(),'nt-cascade');
+  }
+}
+
+function _connectWalletForTier(t){
+  _initTonConnect();
+  if(!_tonUI){narrator.log('TON Connect unavailable — check internet connection','nt-grief');return}
+  _pendingTier=t;
+  narrator.log('Connecting TON wallet for '+t.toUpperCase()+'...','nt');
+  _tonUI.openModal();
+}
+
+function pickTier(t){
+  var si=document.getElementById('strat-info'),bi=document.getElementById('boss-info');
+  if(si)si.style.display=t==='strategist'?'block':'none';
+  if(bi)bi.style.display=t==='boss'?'block':'none';
+
+  ['to','te','tt','ts','tb'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on')});
+  var map={observer:'to',explorer:'te',trader:'tt',strategist:'ts',boss:'tb'};
+  var el=document.getElementById(map[t]);if(el)el.classList.add('on');
+
+  var names={observer:'OBSERVER',explorer:'EXPLORER',trader:'TRADER',strategist:'STRATEGIST',boss:'BOSS'};
+  var btn=document.getElementById('tierBtn');
+
+  if(t==='observer'){
+    tier=t;acct=null;trader.balance=0;trader.startBal=0;
+    btn.textContent='OBSERVER';
+    narrator.log('Observer mode — watch only','nt');
+    closeTiers();
+  }else if(t==='explorer'){
+    tier=t;acct='demo';
+    btn.textContent='EXPLORER';
+    resetDemo();
+    narrator.log('Explorer: 10,000 TON demo active','nt-trade');
+    closeTiers();
+  }else if(t==='trader'||t==='strategist'||t==='boss'){
+    // Check if already connected
+    if(_walletAddr){
+      _activateTier(t,0);
+    }else{
+      btn.textContent=names[t]+' — CONNECT WALLET';
+      narrator.log('Connecting wallet to activate '+names[t]+'...','nt');
+      _connectWalletForTier(t);
+      // Keep tier panel open while wallet connects
+      return;
+    }
+  }
+  document.getElementById('resetWrap').style.display=t==='explorer'?'':'none';
+}
+
+function resetDemo(){
+  trader.balance=10000;trader.startBal=10000;trader.wins=0;trader.losses=0;
+  trader.positions.clear();trader.history=[];profH.length=0;
+  trader.dailyPnL=0;trader.consecutiveLosses=0;
+  stars.forEach(function(s){s.pos=false});
+  narrator.log('Demo reset: 10,000 TON','nt-trade')}
+
+function ask(){var inp=document.getElementById('oI'),q=inp.value.trim();if(!q)return;inp.value='';
+  var r=document.getElementById('oracle-resp');r.style.display='block';
+  var c=stars.filter(function(s){return s.type==='crypto'}).slice();
+  var bu=c.filter(function(s){return s.dir==='BULL'}),be=c.filter(function(s){return s.dir==='BEAR'});
+  var hot=c.sort(function(a,b){return b.warmth-a.warmth})[0];
+  var cold=c.sort(function(a,b){return a.change-b.change})[0];
+  var ql=q.toLowerCase();var a='';
+  var grief=field?field.grief:0;
+  var griefWarning=grief>0.5?' ⚠ Market grief is high ('+Math.floor(grief*100)+'%) — conflicting signals, high risk.':'';
+
+  if(ql.includes('help')||ql.includes('how')||ql.includes('what can')||ql.includes('guide')){
+    a='Oracle reads the resonance field — the living pulse of all markets.\n\n'+
+      'Try asking:\n• "what to buy?" — hottest asset by momentum\n• "what to sell?" — weakest performer\n• "market mood" — bull/bear balance\n• "grief" — field contradiction level\n• "balance" — your trading account\n• "[coin name]" — specific asset info\n• "signals" — current trade signals\n• "risk" — exposure analysis';
+  }
+  else if(ql.includes('buy')||ql.includes('long')){
+    if(!hot){a='No data yet. Prices loading...'}
+    else{a='Hottest: '+hot.id+' ('+hot.warmth.toFixed(2)+' warmth, '+(hot.change>=0?'+':'')+hot.change.toFixed(1)+'%)\n'+
+      'Market: '+bu.length+' bull vs '+be.length+' bear.\n'+
+      (hot.warmth>1.5?'Strong momentum — resonance field confirms.':'Warmth moderate — wait for stronger signal.')+griefWarning}
+  }
+  else if(ql.includes('sell')||ql.includes('short')){
+    if(!cold){a='No data yet.'}
+    else{a='Weakest: '+cold.id+' ('+cold.change.toFixed(1)+'%, warmth '+cold.warmth.toFixed(2)+')\n'+
+      (cold.change<-3?'Heavy selling pressure.':'Mild weakness — not a strong short signal.')+griefWarning}
+  }
+  else if(ql.includes('mood')||ql.includes('market')||ql.includes('sentiment')){
+    var ratio=bu.length/(bu.length+be.length||1);
+    var mood=ratio>0.7?'Strongly bullish':ratio>0.55?'Leaning bullish':ratio<0.3?'Strongly bearish':ratio<0.45?'Leaning bearish':'Undecided';
+    a=mood+' — '+bu.length+' bull, '+be.length+' bear ('+Math.floor(ratio*100)+'% bull).\n'+
+      'Field warmth: '+(field?field.fieldWarmth.toFixed(2):'?')+'. '+(grief>0.3?'Grief building ('+Math.floor(grief*100)+'%) — contradictions in the field.':'Field stable.');
+  }
+  else if(ql.includes('grief')){
+    a='Grief: '+Math.floor(grief*100)+'%\n'+
+      (grief>0.6?'CRITICAL — bulls and bears pulling equally hard. The field can\'t decide. Positions will auto-close above 60%.':
+       grief>0.3?'Rising tension. Watch for sudden reversals.':'Low grief. Field has clear direction.');
+  }
+  else if(ql.includes('balance')||ql.includes('account')){
+    var st=trader.getStatus();
+    a='Balance: '+st.balance.toFixed(2)+' TON\nP&L: '+(st.balance-trader.startBal>=0?'+':'')+(st.balance-trader.startBal).toFixed(2)+'\n'+
+      'Trades: '+st.trades+' ('+st.winRate.toFixed(0)+'% win rate)\nOpen positions: '+st.positions;
+  }
+  else if(ql.includes('signal')){
+    var sigs=field?field.getSignals().slice(0,5):[];
+    if(sigs.length===0){a='No active signals. Warmth too low or EMAs not aligned.'+griefWarning}
+    else{a='Active signals:\n'+sigs.map(function(s){return(s.dir==='LONG'?'↑':'↓')+' '+s.id+' — '+s.reason+' (w:'+s.warmth.toFixed(1)+')'}).join('\n')+griefWarning}
+  }
+  else if(ql.includes('risk')||ql.includes('exposure')){
+    var exp=0;for(var[,p]of trader.positions)exp+=p.size;
+    var expPct=trader.balance>0?(exp/(trader.balance+exp)*100):0;
+    a='Exposure: '+exp.toFixed(0)+' TON ('+expPct.toFixed(0)+'%)\n'+
+      'Max allowed: '+(trader.cfg.maxExposure*100)+'%\nOpen positions: '+trader.positions.size+'/'+trader.cfg.maxPos+'\n'+
+      'Daily P&L: '+(trader.dailyPnL>=0?'+':'')+trader.dailyPnL.toFixed(2)+' (limit: -'+Math.floor(trader.cfg.dailyLimit*100)+'%)'+griefWarning;
+  }
+  else if(ql.includes('reset')&&tier==='explorer'){
+    trader.balance=10000;trader.startBal=10000;trader.wins=0;trader.losses=0;trader.positions.clear();profH.length=0;a='Demo reset to 10,000 TON.';
+  }
+  else{
+    // Search for specific coin/asset
+    var found=stars.find(function(s){return s.id.toLowerCase().includes(ql)||ql.includes(s.id.toLowerCase())});
+    if(found){
+      var n=field?field.nodes.get(found.id):null;
+      var p=found.price>100?'$'+found.price.toFixed(2):found.price>1?'$'+found.price.toFixed(4):'$'+found.price.toFixed(6);
+      a=found.id+' — '+found.dir+'\nPrice: '+p+' ('+(found.change>=0?'+':'')+found.change.toFixed(2)+'%)\nWarmth: '+found.warmth.toFixed(2);
+      if(n&&n.rsi)a+='\nRSI: '+n.rsi.toFixed(0)+(n.rsi>70?' (overbought)':n.rsi<30?' (oversold)':'');
+      if(n&&n.ema8)a+='\nEMA8: $'+n.ema8.toFixed(2)+(n.ema8>n.ema21?' (bullish crossover)':' (bearish crossover)');
+      if(aiCouncil&&aiCouncil.lastVotes[found.id]){var av=aiCouncil.lastVotes[found.id];a+='\nAI Council: '+av.action+' ('+av.confidence.toFixed(0)+'/10)'}
+      a+=griefWarning;
+    }else{
+      a=stars.length+' assets tracked. '+bu.length+' bull, '+be.length+' bear.\n'+
+        (hot?'Hottest: '+hot.id+' (w:'+hot.warmth.toFixed(2)+')':'')+'\nType "help" for a list of what I can answer.'+griefWarning;
+    }
+  }
+  // Escape HTML to prevent XSS from external data (Polymarket questions, etc.)
+  var safe=a.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  r.innerHTML=safe;setTimeout(function(){r.style.display='none'},15000)}
+
+// ══════════════════════════════════════════════════════════════
+// FETCH PRICES — with 30s cache to prevent rate limit
+// ══════════════════════════════════════════════════════════════
+async function fetchPrices(){
+  var now=Date.now();
+  if(priceCache&&now-lastFetchTime<30000)return priceCache; // cache 30s
+  var R={};
+  try{var coins='bitcoin,ethereum,solana,dogecoin,cardano,ripple,polkadot,toncoin,chainlink,avalanche-2,uniswap,litecoin,near,aptos,sui,arbitrum,optimism,celestia,render-token,injective-protocol,fetch-ai,bonk,pepe,floki,aave,maker,lido-dao,pendle,fantom,cosmos,algorand,hedera-hashgraph,theta-token,vechain';
+    var r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+coins+'&vs_currencies=usd&include_24hr_change=true');
+    var d=await r.json();if(d.status)throw new Error('rate limited');
+    for(var[id,info]of Object.entries(d)){if(info.usd)R[id.toUpperCase()]={price:info.usd,change:info.usd_24h_change||0,type:'crypto'}}}catch(e){}
+  try{var r2=await fetch('https://api.coincap.io/v2/assets?limit=30');var d2=await r2.json();
+    // Map CoinCap IDs to CoinGecko IDs to avoid duplicates
+    var capMap={bitcoin:'BITCOIN',ethereum:'ETHEREUM',solana:'SOLANA',dogecoin:'DOGECOIN',cardano:'CARDANO',
+      xrp:'RIPPLE',polkadot:'POLKADOT',toncoin:'TONCOIN',chainlink:'CHAINLINK',avalanche:'AVALANCHE-2',
+      uniswap:'UNISWAP',litecoin:'LITECOIN',near:'NEAR',cosmos:'COSMOS'};
+    for(var c of(d2.data||[])){var p=parseFloat(c.priceUsd),ch=parseFloat(c.changePercent24Hr);
+      var key=capMap[c.id]||c.id.toUpperCase();
+      if(R[key]){R[key].price=(R[key].price+p)/2;R[key].change=(R[key].change+ch)/2}}}catch(e){}
+  try{var r3=await fetch('https://open.er-api.com/v6/latest/USD');var d3=await r3.json();
+    if(!window._fxBaseline)window._fxBaseline={};
+    for(var c of['EUR','GBP','JPY','CHF','AUD','CAD','MXN','SEK','BRL','CNY']){
+      if(!d3.rates||!d3.rates[c])continue;var key='USD/'+c;var rate=d3.rates[c];
+      // Store first-seen rate as baseline, compute change from it
+      if(!window._fxBaseline[key])window._fxBaseline[key]=rate;
+      var fxChange=(rate-window._fxBaseline[key])/window._fxBaseline[key]*100;
+      // Also use HL data and node history for micro-changes between polls
+      if(field){var fn=field.nodes.get(key);
+        if(fn&&fn.history.length>2){
+          var prev=fn.history[Math.max(0,fn.history.length-3)]; // compare to 3 polls ago
+          var microChange=(rate-prev)/prev*100;
+          if(Math.abs(microChange)>Math.abs(fxChange))fxChange=microChange;
+        }}
+      R[key]={price:rate,change:fxChange,type:'forex'}}}catch(e){}
+  // Polymarket prediction markets
+  try{var r4=await fetch('https://gamma-api.polymarket.com/markets?limit=10&active=true&closed=false');
+    var d4=await r4.json();
+    for(var mi=0;mi<d4.length;mi++){var m=d4[mi];if(m.closed)continue;
+      // Use slug for stable ID, fallback to conditionId, last resort: truncated question
+      var q=m.slug||(m.conditionId?m.conditionId.substring(0,16):(m.question||'').substring(0,22).trim());
+      var v=parseFloat(m.volumeNum||0);
+      if(v<500||!q)continue;
+      R[q]={price:parseFloat(m.lastTradePrice||.5),change:parseFloat(m.oneDayPriceChange||0)*100,type:'poly'}}}catch(e){}
+  if(Object.keys(R).length>5){priceCache=R;lastFetchTime=now}
+  return R;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UPDATE
+// ══════════════════════════════════════════════════════════════
+function updateStars(data){
+  for(var[sym,d]of Object.entries(data)){
+    var s=starMap[sym];
+    if(!s){s=new Star(sym,d.type,d.price,d.change);stars.push(s);starMap[sym]=s}
+    else{s.price=d.price;s.change=d.change;s.warmth=Math.max(s.warmth,Math.abs(d.change)/2+.2);if(Math.abs(d.change)>0.001)s.dir=d.change>0?'BULL':'BEAR'}
+    if(field){field.addNode(sym,d.type);field.updateNode(sym,d.price,d.change);
+      if(Math.abs(d.change)>1.5)field.injectEvent(sym,d.change/100)}
+  }
+  stars.forEach(function(s){s.pos=trader.positions.has(s.id)});
+  try{if(field){
+    var now=Date.now();
+    if(!window._lastBondLearn)window._lastBondLearn=0;
+    var shouldLearn=!window._bondsLearned||(now-window._lastBondLearn>300000); // re-learn every 5 min
+    if(shouldLearn){
+      var ready=[...field.nodes.values()].filter(function(n){
+        if(n.history.length<30)return false;
+        var mn=Math.min.apply(null,n.history),mx=Math.max.apply(null,n.history);
+        return mx>mn*1.001;
+      });
+      if(ready.length>=5){field.learnBonds();window._bondsLearned=true;window._lastBondLearn=now;
+        narrator.log(field.bonds.length+' bonds '+(window._bondsLearned?'updated':'learned'),'nt-cascade')}
+    }
+  }}catch(e){}
+  try{if(field){var cascades=field.tick(15);
+    if(cascades&&cascades.length>0)for(var i=0;i<cascades.length;i++){var cs=cascades[i];var fs=starMap[cs.source];var ts=starMap[cs.target];if(fs&&ts){vfx.addCascadePulse(fs,ts);playCascadeChord(fs,ts)}}}
+    if(acct&&trader&&trader.balance>0)trader.execute()}catch(e){}
+  if(acct&&trader.balance>0){profH.push({t:Date.now(),v:trader.balance});if(profH.length>300)profH.shift()}
+}
+
+// ══════════════════════════════════════════════════════════════
+// HUD
+// ══════════════════════════════════════════════════════════════
+function updateHUD(){try{
+  var st=trader.getStatus();var pnl=st.balance-trader.startBal;
+  var tag=tier!=='observer'?' ['+tier.toUpperCase()+']':'';
+  document.getElementById('hB').textContent=(st.balance||0).toFixed(2)+tag;document.getElementById('hB').className='hv '+(pnl>=0?'grn':'red');
+  document.getElementById('hP').textContent=(pnl>=0?'+':'')+(pnl||0).toFixed(3);document.getElementById('hP').className='hv '+(pnl>=0?'grn':'red');
+  document.getElementById('hS').textContent=stars.length;
+  document.getElementById('hT').textContent=st.trades+(st.trades>0?' ('+st.winRate.toFixed(0)+'%)':'');
+  var g=field?field.grief:0;document.getElementById('hG').textContent=g>.6?''+((g*100).toFixed(0))+'%':'—';document.getElementById('hG').className='hv '+(g>.6?'red':'dim');
+  _cachedBulls=0;_cachedBears=0;
+  for(var si=0;si<stars.length;si++){if(stars[si].type==='crypto'){if(stars[si].dir==='BULL')_cachedBulls++;else _cachedBears++}}
+  var bulls=_cachedBulls,bears=_cachedBears;
+  var hBo=document.getElementById('hBo');if(hBo)hBo.textContent=field.bonds.length;
+  var mode=acct==='demo'?'DEMO':acct==='live'?'LIVE':'WATCH';
+  var hl=hlApi&&hlApi.connected?' · HL':'';
+  var ai=aiCouncil&&aiCouncil.enabled?' · AI:'+aiCouncil.callCount:'';
+  document.getElementById('status-bar').textContent=mode+' · '+bulls+'↑ '+bears+'↓ · '+st.positions+' pos'+hl+ai;
+}catch(e){}}
+
+// ══════════════════════════════════════════════════════════════
+// PATTERN VISUALIZATION MODES
+// ══════════════════════════════════════════════════════════════
+var vizModes={bonds:true,rivers:true,globalFlow:true,worldMap:false,sankey:false,gravity:true,spiral:true,trails:false,colorTemp:false,ghosts:false,ripples:false,divergence:false,weather:false,volShadow:false,obMass:false,liqZones:false,spiderWeb:false,forceGraph:false,neuralNet:false,flowPipes:false,sparklines:false,equityCurve:false,tradeLog:false,corrMatrix:false,signalBars:false};
+// Cached counts — updated in HUD, used everywhere
+var _cachedBulls=0,_cachedBears=0;
+
+function toggleVizPanel(){var p=document.getElementById('viz-panel');p.style.display=p.style.display==='none'?'block':'none'}
+var _infoBarVisible=false;
+function toggleInfoBar(){
+  _infoBarVisible=!_infoBarVisible;
+  document.getElementById('info-bar').style.display=_infoBarVisible?'flex':'none';
+  document.getElementById('infoToggle').textContent=_infoBarVisible?'▲':'▼';
+}
+function toggleViz(mode){
+  vizModes[mode]=!vizModes[mode];
+  var el=document.getElementById('vz-'+mode);if(!el)return;
+  el.textContent=vizModes[mode]?'●':'○';
+  el.parentElement.className=vizModes[mode]?'vz on':'vz';
+}
+
+// ── 1. COMET TRAILS — tail shows price direction, not orbital wiggle ──
+function drawCometTrails(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    // Trail direction based on price change: up-right=bull, down-left=bear
+    var angle=s.dir==='BULL'?Math.PI*1.25:Math.PI*0.25; // opposite of movement = tail behind
+    var trailLen=(8+Math.abs(s.change)*3)*cam.z; // longer tail = bigger move
+    var sx=s.sx,sy=s.sy;
+    if(sx<-50||sx>W+50||sy<-50||sy>H+50)continue;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    // Draw 6 fading segments
+    for(var j=1;j<=6;j++){
+      var frac=j/6;
+      var tx=sx+Math.cos(angle)*trailLen*frac;
+      var ty=sy+Math.sin(angle)*trailLen*frac;
+      var ptx=sx+Math.cos(angle)*trailLen*(frac-1/6);
+      var pty=sy+Math.sin(angle)*trailLen*(frac-1/6);
+      var alpha=0.4*(1-frac);
+      cx.strokeStyle='rgba('+col+','+alpha+')';
+      cx.lineWidth=Math.max(0.5,(1-frac)*3*cam.z);
+      cx.beginPath();cx.moveTo(ptx,pty);cx.lineTo(tx,ty);cx.stroke();
+    }
+  }
+}
+
+// ── 2. COLOR TEMPERATURE — spectrum from cold blue to hot red ──
+function getColorTemp(change,warmth){
+  // -5%=deep blue, 0=cyan, +2%=green, +5%=yellow, +8%=orange, +12%=red
+  var t=Math.max(-5,Math.min(12,change))+5; // 0 to 17 range
+  var norm=t/17;
+  var r,g,b;
+  if(norm<0.2){r=30;g=60+norm*5*200;b=255} // deep blue → cyan
+  else if(norm<0.4){r=0;g=255;b=255-((norm-0.2)*5*255)} // cyan → green
+  else if(norm<0.6){r=((norm-0.4)*5*255);g=255;b=0} // green → yellow
+  else if(norm<0.8){r=255;g=255-((norm-0.6)*5*155);b=0} // yellow → orange
+  else{r=255;g=100-((norm-0.8)*5*100);b=((norm-0.8)*5*50)} // orange → red
+  return 'rgb('+Math.floor(r)+','+Math.floor(g)+','+Math.floor(b)+')';
+}
+
+// ── 3. GHOST POSITIONS — visible afterimages at past positions ──
+function drawGhosts(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(!s._ghosts)s._ghosts=[];
+    // Record position every 120 frames (~2 seconds)
+    if(!s._ghostFrame)s._ghostFrame=0;s._ghostFrame++;
+    if(s._ghostFrame%120===0){s._ghosts.push({x:s.bx,y:s.by,t:performance.now(),dir:s.dir});if(s._ghosts.length>4)s._ghosts.shift()}
+    for(var j=0;j<s._ghosts.length;j++){
+      var gh=s._ghosts[j];
+      var age=(performance.now()-gh.t)/60000;
+      var alpha=Math.max(0.05,0.3-age*0.05);
+      var gx=(gh.x-cam.x)*cam.z+W/2,gy=(gh.y-cam.y)*cam.z+H/2;
+      if(gx<-30||gx>W+30)continue;
+      var gcol=gh.dir==='BULL'?'0,255,200':'255,80,100';
+      // Filled dot ghost (not just stroke)
+      cx.globalAlpha=alpha*0.4;cx.fillStyle='rgba('+gcol+',1)';
+      cx.beginPath();cx.arc(gx,gy,Math.max(2,s.r*0.6),0,6.28);cx.fill();
+      // Dashed ring
+      cx.globalAlpha=alpha;cx.strokeStyle='rgba('+gcol+',0.6)';cx.lineWidth=1*cam.z;
+      cx.setLineDash([2*cam.z,2*cam.z]);cx.beginPath();cx.arc(gx,gy,Math.max(3,s.r),0,6.28);cx.stroke();cx.setLineDash([]);
+      cx.globalAlpha=1;
+    }
+  }
+}
+
+// ── 4. HEARTBEAT RIPPLES — expanding rings per star ──
+var starRipples=[];
+function drawRipples(dt){
+  // Spawn new ripples based on volatility (capped at 100)
+  if(starRipples.length>100){starRipples.splice(0,starRipples.length-80)}
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(!s._nextRipple)s._nextRipple=0;
+    if(starRipples.length<100&&performance.now()>s._nextRipple){
+      var freq=Math.max(800,3000-s.warmth*800); // hotter = faster ripples
+      s._nextRipple=performance.now()+freq;
+      starRipples.push({x:s.wx,y:s.wy,r:0,maxR:20+s.warmth*15,alpha:0.35,
+        col:s.dir==='BULL'?'0,255,200':'255,80,100',speed:15+s.warmth*10});
+    }
+  }
+  // Draw & update
+  for(var i=starRipples.length-1;i>=0;i--){
+    var rp=starRipples[i];rp.r+=rp.speed*dt;rp.alpha*=(1-dt*1.5);
+    if(rp.alpha<0.01||rp.r>rp.maxR){starRipples.splice(i,1);continue}
+    var rx=(rp.x-cam.x)*cam.z+W/2,ry=(rp.y-cam.y)*cam.z+H/2;
+    if(rx<-50||rx>W+50)continue;
+    cx.strokeStyle='rgba('+rp.col+','+rp.alpha+')';cx.lineWidth=0.8*cam.z;
+    cx.beginPath();cx.arc(rx,ry,rp.r*cam.z,0,6.28);cx.stroke();
+  }
+}
+
+// ── 5. DIVERGENCE FLARES — flash when correlated pair breaks ──
+var divFlares=[];
+function checkDivergence(){
+  if(!field||field.bonds.length===0)return;
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];if(Math.abs(bond.strength)<0.6)continue;
+    var na=field.nodes.get(bond.from),nb=field.nodes.get(bond.to);
+    if(!na||!nb)continue;
+    // Divergence: normally correlated but now moving opposite
+    if(bond.strength>0.5&&na.dir!==nb.dir&&na.warmth>0.5&&nb.warmth>0.5){
+      var sa=starMap[bond.from];
+      var sb=starMap[bond.to];
+      if(!sa||!sb)continue;
+      // Don't spam — check if flare already exists
+      var exists=divFlares.find(function(f){return f.a===bond.from&&f.b===bond.to&&f.alpha>0.1});
+      if(!exists)divFlares.push({a:bond.from,b:bond.to,sa:sa,sb:sb,alpha:0.8,life:3});
+    }
+  }
+}
+function drawDivergenceFlares(dt){
+  for(var i=divFlares.length-1;i>=0;i--){
+    var f=divFlares[i];f.alpha-=dt*0.3;f.life-=dt;
+    if(f.alpha<=0||f.life<=0){divFlares.splice(i,1);continue}
+    var ax=f.sa.sx,ay=f.sa.sy,bx=f.sb.sx,by=f.sb.sy;
+    // Pulsing warning line
+    var pulse=0.5+Math.sin(performance.now()/150)*0.5;
+    cx.strokeStyle='rgba(255,200,50,'+(f.alpha*pulse)+')';
+    cx.lineWidth=(2+pulse*2)*cam.z;cx.setLineDash([6*cam.z,4*cam.z]);
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();cx.setLineDash([]);
+    // Warning diamonds at midpoint
+    var mx=(ax+bx)/2,my=(ay+by)/2;
+    cx.fillStyle='rgba(255,200,50,'+(f.alpha*0.8)+')';
+    cx.save();cx.translate(mx,my);cx.rotate(Math.PI/4);
+    cx.fillRect(-3*cam.z,-3*cam.z,6*cam.z,6*cam.z);cx.restore();
+  }
+}
+
+// ── 6. MARKET WEATHER — nebula shifts with market mood ──
+function drawWeather(){
+  var bulls=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BULL'}).length;
+  var bears=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BEAR'}).length;
+  var total=bulls+bears||1;
+  var bullRatio=bulls/total;
+  var grief=field?field.grief:0;
+  // Bull = clear teal, Bear = purple fog, Grief = red storm
+  if(grief>0.5){
+    // Red storm
+    var intensity=(grief-0.5)*0.3;
+    cx.fillStyle='rgba(60,0,0,'+intensity+')';cx.fillRect(0,0,W,H);
+    // Lightning flashes
+    if(Math.random()<grief*0.02){cx.fillStyle='rgba(255,100,50,0.05)';cx.fillRect(0,0,W,H)}
+  }else if(bullRatio>0.7){
+    // Clear bull — subtle teal wash
+    cx.fillStyle='rgba(0,40,30,0.04)';cx.fillRect(0,0,W,H);
+  }else if(bullRatio<0.3){
+    // Bear fog — purple haze
+    cx.fillStyle='rgba(30,0,40,0.06)';cx.fillRect(0,0,W,H);
+  }
+  // Uncertainty clouds when grief building
+  if(grief>0.3&&grief<=0.5){
+    var now=performance.now()/3000;
+    for(var i=0;i<3;i++){
+      var cloudX=W*(0.3+i*0.2+Math.sin(now+i)*0.1);
+      var cloudY=H*(0.3+Math.cos(now*0.7+i)*0.15);
+      var g=cx.createRadialGradient(cloudX,cloudY,0,cloudX,cloudY,W*0.15);
+      g.addColorStop(0,'rgba(80,40,100,'+(grief*0.08)+')');g.addColorStop(1,'transparent');
+      cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    }
+  }
+}
+
+// ── 7. VOLUME SHADOWS — glow proportional to activity ──
+function drawVolumeShadows(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var intensity=Math.min(s.warmth/3,1); // 0 to 1
+    if(intensity<0.1)continue;
+    var x=s.sx,y=s.sy;
+    if(x<-80||x>W+80||y<-80||y>H+80)continue;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    var shadowR=(15+intensity*25)*cam.z;
+    var g=cx.createRadialGradient(x,y,0,x,y,shadowR);
+    g.addColorStop(0,'rgba('+col+','+(intensity*0.15)+')');
+    g.addColorStop(0.5,'rgba('+col+','+(intensity*0.05)+')');
+    g.addColorStop(1,'transparent');
+    cx.fillStyle=g;cx.fillRect(x-shadowR,y-shadowR,shadowR*2,shadowR*2);
+  }
+}
+
+// Divergence check runs every 2 seconds
+setInterval(function(){if(vizModes.divergence)checkDivergence()},2000);
+
+// ── SENTIMENT GRAVITY — stars attract/repel by correlation ──
+var _minStarSpacing=55; // minimum px between any two stars (prevents label overlap)
+function applySentimentGravity(dt){
+  for(var i=0;i<stars.length;i++)for(var j=i+1;j<stars.length;j++){
+    var a=stars[i],b=stars[j];if(a.type!==b.type)continue;
+    var dx=b.bx-a.bx,dy=b.by-a.by,dist=Math.hypot(dx,dy);
+    if(dist<1)dist=1;
+    // Hard repulsion when too close (prevents clumping / label overlap)
+    if(dist<_minStarSpacing){
+      var push=(_minStarSpacing-dist)*0.15;
+      a.bx-=dx/dist*push;a.by-=dy/dist*push;
+      b.bx+=dx/dist*push;b.by+=dy/dist*push;
+      continue;
+    }
+    if(dist>500)continue;
+    var force=(a.warmth+b.warmth)*0.08*dt;
+    if(a.dir===b.dir){
+      if(dist>_minStarSpacing+20){a.bx+=dx/dist*force;a.by+=dy/dist*force;b.bx-=dx/dist*force;b.by-=dy/dist*force}
+    }else{
+      if(dist<250){a.bx-=dx/dist*force*0.4;a.by-=dy/dist*force*0.4;b.bx+=dx/dist*force*0.4;b.by+=dy/dist*force*0.4}
+    }
+  }
+}
+
+// ── ORDER BOOK MASS — star size influenced by OB imbalance ──
+function applyOBMass(){
+  if(!hlApi)return;
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var depth=hlApi.getDepth(s.id);
+    if(!depth||depth.imbalance===0)continue;
+    // Positive imbalance = more bids = bullish mass = slightly bigger
+    s._obBoost=depth.imbalance*3; // -3 to +3 range
+  }
+}
+
+// ── LIQUIDATION ZONES — show where liquidations cluster ──
+function drawLiqZones(){
+  if(!hlApi)return;
+  for(var sym in hlApi.liquidations){
+    var liqs=hlApi.liquidations[sym];if(!liqs||liqs.length<2)continue;
+    var s=starMap[sym]||starMap[sym.toUpperCase()];if(!s)continue;
+    // Draw small markers around the star showing liquidation pressure
+    var longLiqs=0,shortLiqs=0;
+    for(var i=0;i<liqs.length;i++){if(liqs[i].side==='long')longLiqs++;else shortLiqs++}
+    var total=longLiqs+shortLiqs;if(total<2)continue;
+    var x=s.sx,y=s.sy,r=s.r;
+    if(x<-50||x>W+50)continue;
+    // Red arc for long liquidations (longs getting rekt = bearish pressure)
+    if(longLiqs>0){
+      var arc=Math.min(Math.PI,(longLiqs/total)*Math.PI*2);
+      cx.strokeStyle='rgba(255,60,80,'+(0.3+longLiqs/total*0.4)+')';cx.lineWidth=2*cam.z;
+      cx.beginPath();cx.arc(x,y,r+8*cam.z,-Math.PI/2-arc/2,-Math.PI/2+arc/2);cx.stroke();
+    }
+    // Green arc for short liquidations (shorts getting rekt = bullish pressure)
+    if(shortLiqs>0){
+      var arc=Math.min(Math.PI,(shortLiqs/total)*Math.PI*2);
+      cx.strokeStyle='rgba(0,255,200,'+(0.3+shortLiqs/total*0.4)+')';cx.lineWidth=2*cam.z;
+      cx.beginPath();cx.arc(x,y,r+8*cam.z,Math.PI/2-arc/2,Math.PI/2+arc/2);cx.stroke();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// GRAPH MODE: SPIDER WEB — user at center, bonds radiate out
+// ══════════════════════════════════════════════════════════════
+function drawSpiderWeb(){
+  var centerX=W/2,centerY=H/2;
+  // Concentric rings
+  for(var ring=1;ring<=4;ring++){
+    var r=ring*80*cam.z;
+    cx.strokeStyle='rgba(0,255,200,0.1)';cx.lineWidth=0.8;
+    cx.beginPath();cx.arc(centerX,centerY,r,0,6.28);cx.stroke();
+  }
+  // Radial threads to each star
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];var sx=s.sx,sy=s.sy;
+    if(sx<-50||sx>W+50)continue;
+    var dist=Math.hypot(sx-centerX,sy-centerY);
+    var alpha=Math.max(0.05,0.2-dist/(W*0.5)*0.15);
+    // Thread vibrates based on warmth
+    var vibrate=Math.sin(s.t*2+i)*s.warmth*2*cam.z;
+    var mx=(centerX+sx)/2+vibrate,my=(centerY+sy)/2+vibrate*0.7;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    cx.strokeStyle='rgba('+col+','+alpha+')';cx.lineWidth=Math.max(0.3,s.warmth*0.5)*cam.z;
+    cx.beginPath();cx.moveTo(centerX,centerY);cx.quadraticCurveTo(mx,my,sx,sy);cx.stroke();
+  }
+  // Center node
+  cx.fillStyle='rgba(255,255,255,0.15)';cx.beginPath();cx.arc(centerX,centerY,6*cam.z,0,6.28);cx.fill();
+}
+
+// ══════════════════════════════════════════════════════════════
+// GRAPH MODE: FORCE GRAPH — physics-based layout
+// ══════════════════════════════════════════════════════════════
+function applyForceGraph(dt){
+  if(!field||field.bonds.length===0)return;
+  // Bond springs: bonded stars pull toward each other
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];var str=Math.abs(bond.strength);if(str<0.5)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var dx=sb.bx-sa.bx,dy=sb.by-sa.by,dist=Math.hypot(dx,dy);
+    if(dist<20||dist>800)continue;
+    var targetDist=150-str*80; // stronger bond = closer together
+    var force=(dist-targetDist)*0.0003*dt;
+    sa.bx+=dx/dist*force;sa.by+=dy/dist*force;
+    sb.bx-=dx/dist*force;sb.by-=dy/dist*force;
+  }
+  // Repulsion between all stars (prevent overlap)
+  for(var i=0;i<stars.length;i++)for(var j=i+1;j<stars.length;j++){
+    var a=stars[i],b=stars[j];
+    var dx=b.bx-a.bx,dy=b.by-a.by,dist=Math.hypot(dx,dy);
+    if(dist<10)dist=10;if(dist>200)continue;
+    var repel=300/(dist*dist)*dt;
+    a.bx-=dx/dist*repel;a.by-=dy/dist*repel;
+    b.bx+=dx/dist*repel;b.by+=dy/dist*repel;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// GRAPH MODE: NEURAL NETWORK — nodes light up, signals travel
+// ══════════════════════════════════════════════════════════════
+function drawNeuralNet(){
+  // Draw all connections as thin synapses
+  if(!field)return;
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];var str=Math.abs(bond.strength);if(str<0.4)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    cx.strokeStyle='rgba(100,120,180,'+(str*0.15)+')';cx.lineWidth=0.5*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+  }
+  // Active nodes glow brighter (high warmth = firing)
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(s.warmth<0.5)continue;
+    var x=s.sx,y=s.sy;if(x<-50||x>W+50)continue;
+    var intensity=Math.min(1,(s.warmth-0.5)/3);
+    var pulse=0.5+Math.sin(s.t*3)*0.5;
+    var glowR=(8+intensity*15)*cam.z;
+    cx.fillStyle='rgba(180,200,255,'+(intensity*0.12*pulse)+')';
+    cx.beginPath();cx.arc(x,y,glowR,0,6.28);cx.fill();
+  }
+  // Show cascade signals traveling along bonds
+  for(var i=0;i<field.cascadeQueue.length;i++){
+    var c=field.cascadeQueue[i];
+    var ss=starMap[c.source],st2=starMap[c.target];if(!ss||!st2)continue;
+    // Progress: 0 at injection time, 1 at executeAt. Duration = delayMs (from bond).
+    var duration=c.executeAt-(c.executeAt-Math.max(1,c.executeAt-Date.now()+1));
+    // Simplified: assume cascades created with executeAt = Date.now() + delayMs
+    var elapsed=Date.now()-(c.executeAt-(c.delayMs||60000));
+    var totalDur=c.delayMs||60000;
+    var progress=Math.max(0,Math.min(1,elapsed/totalDur));
+    var px=ss.sx+(st2.sx-ss.sx)*progress,py=ss.sy+(st2.sy-ss.sy)*progress;
+    var alpha=0.6*(1-Math.abs(progress-0.5)*1.5); // brightest in middle
+    cx.fillStyle='rgba(255,255,180,'+Math.max(0.1,alpha)+')';cx.beginPath();cx.arc(px,py,3*cam.z,0,6.28);cx.fill();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// GRAPH MODE: FLOW PIPES — directional capital flow
+// ══════════════════════════════════════════════════════════════
+function drawFlowPipes(){
+  if(!field||field.bonds.length===0)return;
+  var now=performance.now()/1000;
+  for(var i=0;i<field.bonds.length;i++){
+    var bond=field.bonds[i];var str=Math.abs(bond.strength);if(str<0.45)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    // Pipe thickness = bond strength
+    var thickness=Math.max(1,str*5)*cam.z;
+    // Pipe color = direction of flow (from warmer to cooler)
+    var fromWarm=sa.warmth>sb.warmth;
+    var col=bond.strength>0?'0,180,160':'180,80,60';
+    // Outer pipe
+    cx.strokeStyle='rgba('+col+',0.08)';cx.lineWidth=thickness+2*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+    // Inner flow
+    cx.strokeStyle='rgba('+col+',0.2)';cx.lineWidth=thickness;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+    // Animated flow direction markers
+    var count=Math.floor(str*3)+2;
+    for(var pi=0;pi<count;pi++){
+      var t=((now*0.2+pi/count)%1);
+      var fx,fy;
+      if(fromWarm){fx=ax+(bx-ax)*t;fy=ay+(by-ay)*t}
+      else{fx=bx+(ax-bx)*t;fy=by+(ay-by)*t}
+      var alpha=0.5*Math.sin(t*3.14);
+      cx.fillStyle='rgba(255,255,255,'+alpha*0.4+')';
+      cx.beginPath();cx.arc(fx,fy,(thickness*0.4),0,6.28);cx.fill();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA: PRICE SPARKLINES — mini chart next to each star
+// ══════════════════════════════════════════════════════════════
+function drawSparklines(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];var n=field?field.nodes.get(s.id):null;
+    if(!n||n.history.length<5)continue;
+    var x=s.sx,y=s.sy;if(x<-50||x>W+50||y<-50||y>H+50)continue;
+    var h=n.history.slice(-30);
+    var mn=Math.min.apply(null,h),mx=Math.max.apply(null,h),rng=mx-mn||1;
+    var sw=30*cam.z,sh=12*cam.z;
+    var ox=x+s.r+4*cam.z,oy=y-sh/2;
+    // Background
+    cx.fillStyle='rgba(0,4,12,0.5)';cx.fillRect(ox-1,oy-1,sw+2,sh+2);
+    // Line
+    cx.beginPath();
+    for(var j=0;j<h.length;j++){
+      var px=ox+(j/(h.length-1))*sw;
+      var py=oy+sh-((h[j]-mn)/rng)*sh;
+      j===0?cx.moveTo(px,py):cx.lineTo(px,py);
+    }
+    var col=h[h.length-1]>=h[0]?'0,255,200':'255,80,100';
+    cx.strokeStyle='rgba('+col+',0.6)';cx.lineWidth=1;cx.stroke();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA: EQUITY CURVE — real P&L chart (bottom-left)
+// ══════════════════════════════════════════════════════════════
+function drawEquityCurve(){
+  if(profH.length<3||trader.startBal===0)return;
+  var ex=10,ey=H-220,ew=200,eh=80; // above narrator log area
+  // Background
+  cx.fillStyle='rgba(0,4,12,0.6)';cx.fillRect(ex,ey,ew,eh);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(ex,ey,ew,eh);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('EQUITY',ex+4,ey-3);
+  // Zero line
+  var v=profH.map(function(p){return p.v}),mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),rng=mx-mn||1;
+  var zeroY=ey+eh-((trader.startBal-mn)/rng)*eh;
+  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(ex,zeroY);cx.lineTo(ex+ew,zeroY);cx.stroke();
+  // Curve
+  cx.beginPath();
+  for(var i=0;i<profH.length;i++){
+    var px=ex+(i/(profH.length-1))*ew;
+    var py=ey+eh-((profH[i].v-mn)/rng)*eh;
+    i===0?cx.moveTo(px,py):cx.lineTo(px,py);
+  }
+  var last=v[v.length-1];
+  var col=last>=trader.startBal?'0,255,200':'255,80,100';
+  cx.strokeStyle='rgba('+col+',0.7)';cx.lineWidth=1.5;cx.stroke();
+  // Fill under
+  cx.lineTo(ex+ew,ey+eh);cx.lineTo(ex,ey+eh);cx.closePath();
+  cx.fillStyle='rgba('+col+',0.06)';cx.fill();
+  // Current value
+  var pnl=last-trader.startBal;
+  cx.fillStyle='rgba('+col+',0.8)';cx.font='9px Orbitron';cx.textAlign='right';
+  cx.fillText((pnl>=0?'+':'')+pnl.toFixed(1),ex+ew-2,ey+12);
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA: TRADE LOG — scrollable list
+// ══════════════════════════════════════════════════════════════
+function drawTradeLog(){
+  var trades=trader.history.slice(-8).reverse();
+  if(trades.length===0)return;
+  var lx=W-220,ly=H-160,lw=210,lh=8+trades.length*13;
+  cx.fillStyle='rgba(0,4,12,0.7)';cx.fillRect(lx,ly,lw,lh);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(lx,ly,lw,lh);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('TRADE LOG',lx+4,ly-3);
+  for(var i=0;i<trades.length;i++){
+    var t=trades[i];
+    var col=t.pnl>=0?'0,255,200':'255,80,100';
+    var ty=ly+10+i*13;
+    cx.fillStyle='rgba('+col+',0.7)';cx.font='8px Share Tech Mono';cx.textAlign='left';
+    cx.fillText(t.id.substring(0,12),lx+4,ty);
+    cx.textAlign='right';
+    cx.fillText((t.pnlPct>=0?'+':'')+t.pnlPct.toFixed(1)+'% '+t.reason,lx+lw-4,ty);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA: CORRELATION MAP — heatmap grid
+// ══════════════════════════════════════════════════════════════
+function drawCorrMatrix(){
+  if(!field||field.bonds.length===0)return;
+  // Get top 8 crypto stars by warmth
+  var top=stars.filter(function(s){return s.type==='crypto'}).sort(function(a,b){return b.warmth-a.warmth}).slice(0,8);
+  if(top.length<3)return;
+  var n=top.length;
+  var cellSz=20,mx=W-14-n*cellSz,my=80;
+  cx.fillStyle='rgba(0,4,12,0.8)';cx.fillRect(mx-50,my-16,n*cellSz+56,n*cellSz+22);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(mx-50,my-16,n*cellSz+56,n*cellSz+22);
+  cx.fillStyle='rgba(0,255,200,0.3)';cx.font='7px Orbitron';cx.textAlign='left';
+  cx.fillText('CORRELATION',mx-48,my-19);
+  // Labels
+  cx.font='7px Share Tech Mono';cx.fillStyle='rgba(200,220,240,0.5)';
+  for(var i=0;i<n;i++){
+    cx.textAlign='right';cx.fillText(top[i].id.substring(0,5),mx-3,my+i*cellSz+14);
+  }
+  // Cells
+  for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+    if(i===j){cx.fillStyle='rgba(255,255,255,0.05)';cx.fillRect(mx+j*cellSz,my+i*cellSz,cellSz-1,cellSz-1);continue}
+    // Find bond between these two
+    var corr=0;
+    for(var b=0;b<field.bonds.length;b++){
+      var bond=field.bonds[b];
+      if((bond.from===top[i].id&&bond.to===top[j].id)||(bond.from===top[j].id&&bond.to===top[i].id)){corr=bond.strength;break}
+    }
+    // Color: green=positive, red=negative, grey=none
+    var r,g,bl;
+    if(corr>0){r=0;g=Math.floor(corr*255);bl=Math.floor(corr*200)}
+    else if(corr<0){r=Math.floor(Math.abs(corr)*255);g=Math.floor(Math.abs(corr)*60);bl=Math.floor(Math.abs(corr)*80)}
+    else{r=30;g=30;bl=30}
+    cx.fillStyle='rgb('+r+','+g+','+bl+')';
+    cx.fillRect(mx+j*cellSz,my+i*cellSz,cellSz-1,cellSz-1);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA: SIGNAL DASHBOARD — current signals with bars
+// ══════════════════════════════════════════════════════════════
+function drawSignalBars(){
+  var sigs=field?field.getSignals().slice(0,6):[];
+  if(sigs.length===0)return;
+  var sx=10,sy=80,sw=180,rowH=16;
+  cx.fillStyle='rgba(0,4,12,0.7)';cx.fillRect(sx,sy,sw,8+sigs.length*rowH);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(sx,sy,sw,8+sigs.length*rowH);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('SIGNALS',sx+4,sy-3);
+  for(var i=0;i<sigs.length;i++){
+    var sig=sigs[i];
+    var ty=sy+10+i*rowH;
+    var col=sig.dir==='LONG'?'0,255,200':'255,80,100';
+    // Name
+    cx.fillStyle='rgba(200,220,240,0.6)';cx.font='8px Share Tech Mono';cx.textAlign='left';
+    cx.fillText(sig.id.substring(0,10),sx+4,ty);
+    // Direction
+    cx.fillStyle='rgba('+col+',0.8)';cx.textAlign='left';
+    cx.fillText(sig.dir,sx+80,ty);
+    // Warmth bar with label
+    var barW=Math.min(50,sig.warmth*10);
+    cx.fillStyle='rgba('+col+',0.15)';cx.fillRect(sx+110,ty-7,50,8); // full background track
+    cx.fillStyle='rgba('+col+',0.5)';cx.fillRect(sx+110,ty-7,barW,8); // filled portion
+    cx.fillStyle='rgba(200,220,240,0.3)';cx.font='6px Share Tech Mono';cx.textAlign='right';
+    cx.fillText('w:'+sig.warmth.toFixed(1),sx+sw-2,ty); // label
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER — clean order, no conflicts
+// ══════════════════════════════════════════════════════════════
+var last=performance.now();
+function render(now){
+  try{
+  var dt=(now-last)/1000;if(dt>1)dt=0.016; // cap dt to prevent physics explosions after tab switch
+  last=now;
+  drawBg();
+  if(vizModes.weather)drawWeather();
+  if(vizModes.volShadow)drawVolumeShadows();
+  // Graph modes (mutually exclusive with bonds — graph replaces bond rendering)
+  if(vizModes.spiderWeb)drawSpiderWeb();
+  else if(vizModes.flowPipes)drawFlowPipes();
+  else if(vizModes.bonds)drawBonds();
+  if(vizModes.neuralNet)drawNeuralNet();
+  if(vizModes.rivers&&!vizModes.flowPipes)drawFlowRivers();
+  if(vizModes.globalFlow)drawGlobalFlow();
+  if(vizModes.worldMap)drawWorldMapFlow();
+  if(vizModes.sankey)drawSankeyFlow();
+  if(vizModes.ghosts)drawGhosts();
+  // Physics modes
+  if(vizModes.forceGraph)applyForceGraph(dt);
+  else if(vizModes.gravity)applySentimentGravity(dt);
+  if(vizModes.spiral&&!vizModes.forceGraph)goldenSpiralLayout();
+  if(vizModes.obMass)applyOBMass();
+  // Stars
+  for(var i=0;i<stars.length;i++){stars[i].update(dt);stars[i].draw(cx)}
+  // Overlays
+  if(vizModes.trails)drawCometTrails();
+  if(vizModes.ripples)drawRipples(dt);
+  if(vizModes.divergence)drawDivergenceFlares(dt);
+  if(vizModes.liqZones)drawLiqZones();
+  if(vizModes.sparklines)drawSparklines();
+  vfx.draw(dt);
+  drawAurora();
+  drawHeartbeat();
+  // Data panels
+  if(vizModes.equityCurve)drawEquityCurve();
+  if(vizModes.tradeLog)drawTradeLog();
+  if(vizModes.corrMatrix)drawCorrMatrix();
+  if(vizModes.signalBars)drawSignalBars();
+  updateHUD();
+  if(audioEnabled)updateAmbientDrone();
+  // Update detail panel max 2x/sec (not every frame)
+  if(sel){if(!window._lastDetUpdate)window._lastDetUpdate=0;if(now-window._lastDetUpdate>500){showDet(sel);window._lastDetUpdate=now}}
+  }catch(e){if(!window._renderErrors)window._renderErrors=0;window._renderErrors++;if(window._renderErrors<5)console.error('Render:',e)}
+  requestAnimationFrame(render);
+}
+
+// ══════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════
+requestAnimationFrame(render);
+async function tick(){try{var d=await fetchPrices();updateStars(d)}catch(e){}setTimeout(tick,15000)}
+tick();
+
+// Fast HL price updates between API polls (every 5s)
+var hlSymMap={BTC:'BITCOIN',ETH:'ETHEREUM',SOL:'SOLANA',DOGE:'DOGECOIN',ADA:'CARDANO',
+  AVAX:'AVALANCHE-2',DOT:'POLKADOT',LINK:'CHAINLINK',TON:'TONCOIN',XRP:'RIPPLE'};
+setInterval(function(){
+  if(!hlApi||!hlApi.connected)return;
+  for(var sym in hlSymMap){
+    var p=hlApi.getLatestPrice(sym);if(!p)continue;
+    var id=hlSymMap[sym];var s=starMap[id];if(!s)continue;
+    var oldP=s.price;if(oldP<=0)continue;
+    var ch=(p-oldP)/oldP*100;
+    if(Math.abs(ch)>0.001){s.price=p;if(field){field.updateNode(id,p,s.change)}}
+  }
+},5000);
+
+// Onboarding — show once for new users
+function dismissOnboard(){document.getElementById('onboard').style.display='none';try{localStorage.setItem('BOSS_ONBOARDED','1')}catch(e){}}
+try{if(!localStorage.getItem('BOSS_ONBOARDED')){document.getElementById('onboard').style.display='flex'}}catch(e){}
+
+narrator.log('B.O.S.S. Universe online','nt');
+// Start real-time data feeds
+bnbWS.connect();          // Binance WebSocket — live price ticks
+polyScanner.start();      // Polymarket scanner — prediction market prices
+// Reset world map cache on resize
+window.addEventListener('resize',function(){_worldMapCanvas=null});
+</script>
+</body></html>

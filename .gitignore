@@ -1,21 +1,28 @@
-# B.O.S.S. Private — Trading Intelligence (DO NOT PUSH)
-core/universe.html
-core/boss-engine.js
-core/futures-api.js
-core/visual-fx.js
-core/trading-ui.html
-core/markets.js
-core/market-bridge.js
-core/narrator.js
-core/news-scanner.js
-core/trade-executor.js
-core/resonance-field.js
-trading/
-POLYMARKET_OBSERVER.md
-BOSS_ANIMA_MAPPING.md
+# Credentials — NEVER commit
+telegram/BOT_CREDENTIALS.md
+keys.json
+*.env
+.env*
 
-# System
-.DS_Store
+# Trading logs
+calibration_log.json
+failure_log.json
+knowledge_base.json
+STOP
+
+# Node
 node_modules/
-*.log
-/tmp/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Personal data
+entities.json
+mempalace.yaml

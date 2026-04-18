@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#050a06">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>B.O.S.S. Market Observer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+:root {
+  --glow:#00ffcc; --dim:#0f2a20; --grief:#ff4444;
+  --bull:#00ffcc; --bear:#ff4444; --amber:#ffcc00;
+  --bg:#0a150e; --panel:rgba(5,12,8,0.92);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--glow);font-family:'Share Tech Mono',monospace;overflow:hidden;height:100vh}
+canvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
+
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:var(--panel);border-bottom:1px solid #0f2a2044;z-index:20;backdrop-filter:blur(8px)}
+#logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--glow);letter-spacing:.2em;text-shadow:0 0 12px #00ffcc33}
+.hud-row{display:flex;gap:16px;align-items:center}
+.hud-stat{text-align:center}
+.hud-label{font-size:7px;color:#335544;text-transform:uppercase;letter-spacing:.08em}
+.hud-val{font-size:12px;font-weight:700}
+.hud-val.bull{color:var(--bull)} .hud-val.bear{color:var(--bear)} .hud-val.amber{color:var(--amber)}
+
+#strategies{position:fixed;top:32px;left:0;right:0;display:flex;gap:3px;padding:3px 14px;background:rgba(5,12,8,0.8);z-index:20;font-size:8px}
+.strat{background:rgba(0,20,10,0.5);border:1px solid #0f2a20;color:#335544;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:8px}
+.strat.on{border-color:var(--glow);color:var(--glow)}
+
+#narrator{position:fixed;bottom:0;left:0;right:0;height:130px;background:var(--panel);border-top:1px solid var(--dim);padding:6px 10px;overflow-y:auto;z-index:20;font-size:10px;line-height:1.6}
+#narrator::-webkit-scrollbar{width:3px} #narrator::-webkit-scrollbar-thumb{background:var(--dim)}
+.n-trade{color:var(--glow)} .n-profit{color:#66ffcc} .n-loss{color:var(--bear)} .n-cascade{color:var(--amber)} .n-grief{color:var(--grief)} .n-news{color:#cc88ff} .n-ai{color:#88aaff} .n-info{color:#335544} .n-bond{color:#ffaa44}
+
+#timeline{position:fixed;bottom:132px;left:10px;right:10px;height:50px;background:var(--panel);border:1px solid var(--dim);border-radius:4px;z-index:20}
+
+#stats{position:fixed;right:10px;top:50px;width:160px;background:var(--panel);border:1px solid var(--dim);border-radius:4px;padding:6px 8px;z-index:20;font-size:9px}
+.stat-title{font-size:7px;color:#335544;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.stat-row{display:flex;justify-content:space-between;margin:1px 0}
+.stat-k{color:#335544} .stat-v{font-weight:700}
+
+#positions{position:fixed;right:10px;top:200px;width:160px;background:var(--panel);border:1px solid var(--dim);border-radius:4px;padding:6px 8px;z-index:20;font-size:9px}
+
+.grief-flash{display:none;position:fixed;inset:0;background:rgba(60,0,0,.15);border:2px solid #ff444433;z-index:40;pointer-events:none}
+.grief-flash.on{display:block;animation:gflash 2s ease-out forwards}
+@keyframes gflash{0%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="logo">B·O·S·S</div>
+  <div class="hud-row">
+    <div class="hud-stat"><div class="hud-label">balance</div><div class="hud-val" id="h-bal">-</div></div>
+    <div class="hud-stat"><div class="hud-label">daily p&l</div><div class="hud-val" id="h-pnl">-</div></div>
+    <div class="hud-stat"><div class="hud-label">positions</div><div class="hud-val" id="h-pos">0</div></div>
+    <div class="hud-stat"><div class="hud-label">win rate</div><div class="hud-val" id="h-wr">-</div></div>
+    <div class="hud-stat"><div class="hud-label">field</div><div class="hud-val" id="h-field">-</div></div>
+    <div class="hud-stat"><div class="hud-label">cascades</div><div class="hud-val amber" id="h-casc">0</div></div>
+    <div class="hud-stat"><div class="hud-label">grief</div><div class="hud-val" id="h-grief">clear</div></div>
+  </div>
+</div>
+<div id="strategies">
+  <span style="color:#335544">STRAT:</span>
+  <button class="strat on" onclick="setSt(this,'scalp')">⚡Scalp</button>
+  <button class="strat" onclick="setSt(this,'swing')">🐺Swing</button>
+  <button class="strat" onclick="setSt(this,'position')">🐻Position</button>
+  <button class="strat" onclick="setSt(this,'grief')">🦅Grief</button>
+  <button class="strat" onclick="setSt(this,'auto')">🧠Auto</button>
+</div>
+<canvas id="c"></canvas>
+<div id="stats">
+  <div class="stat-title">engine stats</div>
+  <div id="stats-body"></div>
+</div>
+<div id="positions">
+  <div class="stat-title">open positions</div>
+  <div id="pos-body"><span style="color:#1a3a20">idle</span></div>
+</div>
+<div id="timeline"><canvas id="tl-canvas" width="800" height="50"></canvas></div>
+<div id="narrator"><div class="n-info">B.O.S.S. Market Observer initializing...</div></div>
+<div class="grief-flash" id="grief-flash"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   B.O.S.S. UNIFIED TRADING UI v1.0
+   Temporal Resonance Field + Narrator + Real-time Trading
+   ════════════════════════════════════════════════════════════ */
+
+const C = document.getElementById('c'), ctx = C.getContext('2d');
+const TL = document.getElementById('tl-canvas'), tlCtx = TL.getContext('2d');
+const nar = document.getElementById('narrator');
+
+function resize(){C.width=innerWidth;C.height=innerHeight;
+  TL.width=document.getElementById('timeline').offsetWidth;TL.height=50}
+resize(); addEventListener('resize',resize);
+
+// ── Narrator ────────────────────────────────────────────────
+function nlog(msg, cls='n-info'){
+  const d=document.createElement('div'); d.className=cls;
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  nar.appendChild(d); nar.scrollTop=nar.scrollHeight;
+  if(nar.children.length>150) nar.removeChild(nar.firstChild);
+}
+
+// ── State ───────────────────────────────────────────────────
+const nodes = [];
+const bonds = [];
+const profitHistory = [];
+let balance = 28.5, startBal = 28.5, dailyPnL = 0;
+let strategy = 'scalp';
+let griefLevel = 0;
+let pendingCascades = 0;
+let tradeCount = 0, wins = 0, losses = 0;
+const priceHistories = {};
+
+// ── Node Class ──────────────────────────────────────────────
+class N {
+  constructor(id,type,price,change){
+    this.id=id; this.type=type; this.price=price; this.change=change;
+    this.warmth=Math.max(Math.abs(change)/5, type==='forex'?0.15:0.05);
+    this.dir=change>0?'BULL':'BEAR';
+    this.x=Math.random()*C.width*0.6+C.width*0.2;
+    this.y=Math.random()*C.height*0.5+C.height*0.1;
+    this.tx=this.x; this.ty=this.y;
+    this.r=16+this.warmth*22; this.phase=Math.random()*6.28;
+    this.hasPos=false; this.cascading=false; this.verified=false;
+  }
+  update(dt){
+    this.warmth*=Math.exp(-0.003*dt);
+    if(this.warmth<0.01)this.warmth=0.01;
+    if(this.type==='forex')this.warmth=Math.max(this.warmth,0.12);
+    this.r=16+this.warmth*22; this.phase+=dt*0.003;
+    this.x+=(this.tx-this.x)*0.03; this.y+=(this.ty-this.y)*0.03;
+    this.x+=Math.sin(this.phase*0.4)*0.2; this.y+=Math.cos(this.phase*0.6)*0.2;
+  }
+  draw(ctx){
+    const p=1+Math.sin(this.phase)*0.12*this.warmth, r=this.r*p;
+    const col=this.dir==='BULL'?'#00ffcc':'#ff4444';
+    const a=0.4+this.warmth*0.5;
+    // Glow
+    const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r*2.5);
+    g.addColorStop(0,col+Math.round(a*80).toString(16).padStart(2,'0'));
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(this.x,this.y,r*2.5,0,6.28); ctx.fill();
+    // Cascade ring
+    if(this.cascading){
+      ctx.strokeStyle='#ffcc0066'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(this.x,this.y,r+8+Math.sin(this.phase*2)*3,0,6.28); ctx.stroke();
+    }
+    // Core
+    ctx.fillStyle=col+Math.round(a*255).toString(16).padStart(2,'0');
+    ctx.beginPath(); ctx.arc(this.x,this.y,r,0,6.28); ctx.fill();
+    // Position ring
+    if(this.hasPos){
+      ctx.strokeStyle='#ffcc00'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(this.x,this.y,r+4,0,6.28); ctx.stroke();
+    }
+    // Label pill
+    const label=this.id; const pStr=this.price>100?`$${this.price.toFixed(0)}`:this.price>1?`$${this.price.toFixed(2)}`:`$${this.price.toFixed(4)}`;
+    const sub=`${pStr} ${this.change>=0?'+':''}${this.change.toFixed(1)}%`;
+    ctx.font='12px Share Tech Mono';
+    const w=Math.max(ctx.measureText(label).width,ctx.measureText(sub).width)+14;
+    const lx=this.x-w/2, ly=this.y+r+6;
+    ctx.fillStyle='rgba(5,12,8,0.88)'; ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(lx,ly,w,30,4); else{ctx.rect(lx,ly,w,30);}
+    ctx.fill(); ctx.strokeStyle=col+'33'; ctx.lineWidth=0.5; ctx.stroke();
+    ctx.fillStyle='#ffffffcc'; ctx.textAlign='center'; ctx.fillText(label,this.x,ly+13);
+    ctx.fillStyle=col+'aa'; ctx.font='10px Share Tech Mono'; ctx.fillText(sub,this.x,ly+25);
+  }
+}
+
+// ── Layout ──────────────────────────────────────────────────
+function layout(){
+  const cx=C.width/2, cy=C.height/2-30;
+  const groups={crypto:[],forex:[],poly:[]};
+  nodes.forEach(n=>{(groups[n.type]||groups.crypto).push(n)});
+  const centers={crypto:{x:cx*0.3,y:cy},forex:{x:cx*1.7,y:cy},poly:{x:cx,y:cy*0.5}};
+  for(const[type,list]of Object.entries(groups)){
+    const c=centers[type]||centers.crypto;
+    list.sort((a,b)=>b.warmth-a.warmth);
+    list.forEach((n,i)=>{
+      const ga=2.3999*i+n.phase*0.05;
+      const d=55+Math.sqrt(i)*65;
+      n.tx=c.x+Math.cos(ga)*d; n.ty=c.y+Math.sin(ga)*d;
+    });
+  }
+  // Repulsion
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      const dx=b.tx-a.tx,dy=b.ty-a.ty,dist=Math.hypot(dx,dy);
+      const min=(a.r+b.r)*2.8;
+      if(dist<min&&dist>0){
+        const f=(min-dist)/dist*0.4;
+        a.tx-=dx*f; a.ty-=dy*f; b.tx+=dx*f; b.ty+=dy*f;
+      }
+    }
+  }
+  nodes.forEach(n=>{
+    n.tx=Math.max(50,Math.min(C.width-50,n.tx));
+    n.ty=Math.max(55,Math.min(C.height-200,n.ty));
+  });
+}
+
+// ── Draw Bonds ──────────────────────────────────────────────
+function drawBonds(){
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      if(a.type!==b.type)continue;
+      const dist=Math.hypot(a.x-b.x,a.y-b.y);
+      if(dist>350)continue;
+      const alpha=(1-dist/350)*0.5;
+      ctx.strokeStyle=`rgba(0,255,204,${alpha})`;
+      ctx.lineWidth=1.5+(a.warmth+b.warmth)*0.8;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+  }
+}
+
+// ── Timeline ────────────────────────────────────────────────
+function drawTimeline(){
+  const w=TL.width, h=TL.height;
+  tlCtx.fillStyle='#060d08'; tlCtx.fillRect(0,0,w,h);
+  if(profitHistory.length<2)return;
+  const vals=profitHistory.map(p=>p.v);
+  const min=Math.min(...vals)*0.999, max=Math.max(...vals)*1.001, range=max-min||1;
+  // Zero line
+  const zy=h-((startBal-min)/range)*h;
+  tlCtx.strokeStyle='#33554433'; tlCtx.lineWidth=0.5;
+  tlCtx.setLineDash([3,3]); tlCtx.beginPath(); tlCtx.moveTo(0,zy); tlCtx.lineTo(w,zy); tlCtx.stroke(); tlCtx.setLineDash([]);
+  // Curve
+  tlCtx.beginPath();
+  profitHistory.forEach((p,i)=>{
+    const x=i/(profitHistory.length-1)*w, y=h-((p.v-min)/range)*h;
+    i===0?tlCtx.moveTo(x,y):tlCtx.lineTo(x,y);
+  });
+  const last=profitHistory[profitHistory.length-1].v;
+  const col=last>=startBal?'#00ffcc':'#ff4444';
+  tlCtx.strokeStyle=col; tlCtx.lineWidth=1.5; tlCtx.stroke();
+  // Fill
+  tlCtx.lineTo(w,h); tlCtx.lineTo(0,h); tlCtx.closePath();
+  const fg=tlCtx.createLinearGradient(0,0,0,h);
+  fg.addColorStop(0,col+'22'); fg.addColorStop(1,col+'02');
+  tlCtx.fillStyle=fg; tlCtx.fill();
+  // P&L text
+  const pnl=last-startBal;
+  tlCtx.fillStyle=col; tlCtx.font='11px Orbitron'; tlCtx.textAlign='right';
+  tlCtx.fillText(`${pnl>=0?'+':''}${pnl.toFixed(3)} TON (${(pnl/startBal*100).toFixed(2)}%)`,w-5,12);
+  tlCtx.fillStyle='#335544'; tlCtx.font='8px Share Tech Mono'; tlCtx.textAlign='left';
+  tlCtx.fillText(`Trades: ${tradeCount} | W:${wins} L:${losses}`,5,12);
+}
+
+// ── Fetch Multi-Source Prices ────────────────────────────────
+async function fetchPrices(){
+  const results={};
+  try{
+    const coins='bitcoin,ethereum,solana,dogecoin,cardano,ripple,polkadot,toncoin,chainlink,avalanche-2';
+    const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coins}&vs_currencies=usd&include_24hr_change=true`);
+    const d=await r.json();
+    for(const[id,info]of Object.entries(d)){
+      if(!info.usd)continue;
+      results[id.toUpperCase()]={price:info.usd,change:info.usd_24h_change||0,type:'crypto'};
+    }
+  }catch(e){}
+  try{
+    const r2=await fetch('https://api.coincap.io/v2/assets?limit=10');
+    const d2=await r2.json();
+    for(const c of(d2.data||[])){
+      const s=c.symbol, p=parseFloat(c.priceUsd), ch=parseFloat(c.changePercent24Hr);
+      if(results[s]){results[s].price=(results[s].price+p)/2;results[s].change=(results[s].change+ch)/2;results[s].verified=true;}
+    }
+  }catch(e){}
+  try{
+    const r3=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d3=await r3.json();
+    for(const c of['EUR','GBP','JPY','CHF','AUD','MXN','SEK']){
+      if(d3.rates[c])results[`USD/${c}`]={price:d3.rates[c],change:0,type:'forex'};
+    }
+  }catch(e){}
+  try{
+    const r4=await fetch('https://gamma-api.polymarket.com/markets?limit=10&active=true&closed=false');
+    const d4=await r4.json();
+    for(const m of d4){
+      if(m.closed)continue;
+      const q=(m.question||'').substring(0,20).trim();
+      const v=parseFloat(m.volumeNum||0);
+      if(v<1000||!q)continue;
+      const p=parseFloat(m.lastTradePrice||0.5);
+      results[q]={price:p,change:(parseFloat(m.oneDayPriceChange||0))*100,type:'poly'};
+    }
+  }catch(e){}
+  return results;
+}
+
+// ── Update Nodes ────────────────────────────────────────────
+function updateNodes(data){
+  for(const[sym,d]of Object.entries(data)){
+    let n=nodes.find(x=>x.id===sym);
+    const w=Math.max(Math.abs(d.change)/5, d.type==='forex'?0.15:0.05);
+    if(!n){
+      n=new N(sym,d.type,d.price,d.change);
+      nodes.push(n);
+      nlog(`${sym} entered the field.`,'n-info');
+    }else{
+      n.price=d.price; n.change=d.change;
+      n.warmth=Math.max(n.warmth,w);
+      n.dir=d.change>0?'BULL':'BEAR';
+      if(d.verified)n.verified=true;
+    }
+    if(!priceHistories[sym])priceHistories[sym]=[];
+    priceHistories[sym].push(d.price);
+    if(priceHistories[sym].length>200)priceHistories[sym].shift();
+  }
+  // Kill dead nodes
+  for(let i=nodes.length-1;i>=0;i--){
+    if(nodes[i].warmth<0.008&&!nodes[i].hasPos){nodes.splice(i,1);}
+  }
+  layout();
+  
+  // Simulate P&L
+  simulatePnL();
+}
+
+// ── Simulate Trading P&L ────────────────────────────────────
+let lastSimTick = 0;
+function simulatePnL(){
+  const now=Date.now();
+  if(now-lastSimTick<15000)return;
+  lastSimTick=now;
+  
+  const crypto=nodes.filter(n=>n.type==='crypto');
+  if(crypto.length===0)return;
+  
+  const bullW=crypto.filter(n=>n.dir==='BULL').reduce((s,n)=>s+n.warmth*Math.abs(n.change),0);
+  const bearW=crypto.filter(n=>n.dir==='BEAR').reduce((s,n)=>s+n.warmth*Math.abs(n.change),0);
+  const total=bullW+bearW;
+  if(total<0.01)return;
+  
+  const edge=Math.abs(bullW-bearW)/total;
+  griefLevel=1-edge;
+  
+  if(edge>0.2){ // clear signal
+    const gain=edge*0.002;
+    const fee=0.0005;
+    balance+=balance*(gain-fee);
+    dailyPnL+=balance*(gain-fee);
+    tradeCount++;
+    if(gain>fee)wins++; else losses++;
+  }
+  
+  profitHistory.push({t:now,v:balance});
+  if(profitHistory.length>300)profitHistory.shift();
+}
+
+// ── Update HUD ──────────────────────────────────────────────
+function updateHUD(){
+  const pnl=balance-startBal;
+  document.getElementById('h-bal').textContent=balance.toFixed(2);
+  document.getElementById('h-bal').className='hud-val '+(pnl>=0?'bull':'bear');
+  document.getElementById('h-pnl').textContent=(pnl>=0?'+':'')+pnl.toFixed(3);
+  document.getElementById('h-pnl').className='hud-val '+(pnl>=0?'bull':'bear');
+  document.getElementById('h-pos').textContent=nodes.filter(n=>n.hasPos).length;
+  document.getElementById('h-wr').textContent=tradeCount>0?Math.round(wins/tradeCount*100)+'%':'-';
+  document.getElementById('h-field').textContent=nodes.length+' nodes';
+  document.getElementById('h-grief').textContent=griefLevel>0.6?'ACTIVE':'clear';
+  document.getElementById('h-grief').className='hud-val '+(griefLevel>0.6?'bear':'');
+  
+  // Stats panel
+  const crypto=nodes.filter(n=>n.type==='crypto');
+  const bulls=crypto.filter(n=>n.dir==='BULL').length;
+  const bears=crypto.filter(n=>n.dir==='BEAR').length;
+  document.getElementById('stats-body').innerHTML=
+    `<div class="stat-row"><span class="stat-k">nodes</span><span class="stat-v">${nodes.length}</span></div>`+
+    `<div class="stat-row"><span class="stat-k">crypto</span><span class="stat-v">${crypto.length}</span></div>`+
+    `<div class="stat-row"><span class="stat-k">bulls/bears</span><span class="stat-v" style="color:${bulls>bears?'var(--bull)':'var(--bear)'}">${bulls}/${bears}</span></div>`+
+    `<div class="stat-row"><span class="stat-k">grief</span><span class="stat-v" style="color:${griefLevel>0.6?'var(--grief)':'var(--glow)'}">${(griefLevel*100).toFixed(0)}%</span></div>`+
+    `<div class="stat-row"><span class="stat-k">trades</span><span class="stat-v">${tradeCount}</span></div>`+
+    `<div class="stat-row"><span class="stat-k">win rate</span><span class="stat-v">${tradeCount>0?Math.round(wins/tradeCount*100)+'%':'-'}</span></div>`;
+}
+
+// ── Strategy ────────────────────────────────────────────────
+function setSt(el,s){
+  strategy=s;
+  document.querySelectorAll('.strat').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  nlog(`Strategy: ${s}`,'n-bond');
+}
+
+// ── Render ──────────────────────────────────────────────────
+let last=performance.now();
+function render(now){
+  const dt=(now-last)/1000; last=now;
+  ctx.fillStyle='#0a150e'; ctx.fillRect(0,0,C.width,C.height);
+  
+  // Cluster labels
+  ctx.fillStyle='#0f2a20cc'; ctx.font='16px Orbitron'; ctx.textAlign='center';
+  const cc=nodes.filter(n=>n.type==='crypto').length;
+  const fc=nodes.filter(n=>n.type==='forex').length;
+  const pc=nodes.filter(n=>n.type==='poly').length;
+  ctx.fillText(`CRYPTO ${cc}`,C.width*0.2,48);
+  ctx.fillText(`FOREX ${fc}`,C.width*0.8,48);
+  if(pc>0)ctx.fillText(`PREDICT ${pc}`,C.width*0.5,48);
+  
+  drawBonds();
+  nodes.forEach(n=>{n.update(dt);n.draw(ctx)});
+  drawTimeline();
+  updateHUD();
+  
+  // Grief flash
+  if(griefLevel>0.7){document.getElementById('grief-flash').classList.add('on');
+    setTimeout(()=>document.getElementById('grief-flash').classList.remove('on'),2000);
+  }
+  
+  requestAnimationFrame(render);
+}
+
+// ── Main Loop ───────────────────────────────────────────────
+async function tick(){
+  try{
+    const data=await fetchPrices();
+    updateNodes(data);
+  }catch(e){nlog(`Feed error: ${e.message}`,'n-info')}
+  setTimeout(tick,15000);
+}
+
+// ── Boot ────────────────────────────────────────────────────
+nlog('B.O.S.S. Market Observer v1.0 — Temporal Resonance Field','n-info');
+nlog('Multi-source: CoinGecko + CoinCap + ExchangeRate + Polymarket','n-info');
+nlog('Engine active. Watching for signals...','n-trade');
+requestAnimationFrame(render);
+tick();
+</script>
+</body>
+</html>

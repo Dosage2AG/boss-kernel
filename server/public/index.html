@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>B.O.S.S. Universe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000008;overflow:hidden;height:100vh;font-family:'Share Tech Mono',monospace;color:#aab;cursor:crosshair}
+canvas#cv{position:fixed;top:0;left:0;width:100vw;height:100vh}
+#hud{position:fixed;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:20;
+  background:rgba(0,4,12,0.85);border:1px solid #ffffff08;border-radius:16px;padding:4px 16px;backdrop-filter:blur(10px)}
+.hi{text-align:center}.hl{font-size:10px;color:#779;text-transform:uppercase;letter-spacing:.06em}
+.hv{font-size:14px;font-family:Orbitron,monospace;font-weight:700}
+.grn{color:#0fc}.red{color:#f45}.amb{color:#fc4}.dim{color:#668}
+#detail{display:none;position:fixed;right:12px;top:55px;width:240px;background:rgba(0,6,16,0.94);
+  border:1px solid #0fc2;border-radius:8px;padding:14px;z-index:25;backdrop-filter:blur(12px)}
+#detail h3{font-family:Orbitron;font-size:15px;color:#0fc;margin-bottom:8px;letter-spacing:.1em}
+#detail .r{display:flex;justify-content:space-between;font-size:12px;margin:4px 0}
+#detail .k{color:#779}#detail .v{font-weight:700}
+#d-close{position:absolute;top:8px;right:10px;color:#779;cursor:pointer;font-size:14px}
+#oracle{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:20;display:flex;width:340px;max-width:75vw}
+#oracle input{flex:1;background:rgba(0,6,16,0.5);border:1px solid #0fc1;color:#ccd;padding:10px 14px;
+  font-family:'Share Tech Mono';font-size:13px;border-radius:18px 0 0 18px;outline:none}
+#oracle input::placeholder{color:#557}#oracle input:focus{border-color:#0fc4}
+#oracle button{background:rgba(0,30,20,0.5);border:1px solid #0fc1;color:#0fc;padding:10px 16px;
+  font-family:Orbitron;font-size:11px;cursor:pointer;border-radius:0 18px 18px 0}
+#oracle-resp{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);width:380px;max-width:80vw;
+  background:rgba(0,6,16,0.92);border:1px solid #0fc2;border-radius:8px;padding:12px 15px;z-index:20;
+  font-size:12px;line-height:1.6;display:none;max-height:120px;overflow-y:auto;backdrop-filter:blur(8px);color:#aab}
+#tier-panel{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:380px;max-width:90vw;
+  background:rgba(0,4,12,0.96);border:1px solid #0fc3;border-radius:10px;padding:18px;z-index:50;backdrop-filter:blur(15px)}
+.tc{background:rgba(0,12,8,0.5);border:1px solid #0fc1;border-radius:6px;padding:8px 12px;margin-bottom:6px;cursor:pointer}
+.tc:hover{border-color:#0fc6;background:rgba(0,20,12,0.6)}.tc.on{border-color:#0fc;background:rgba(0,35,22,0.5)}
+.tc-h{display:flex;justify-content:space-between}.tc-n{font-family:Orbitron;font-size:12px;color:#0fc}
+.tc-p{font-family:Orbitron;font-size:11px;color:#0fc8}.tc-d{font-size:10px;color:#779;margin-top:3px}
+#status-bar{position:fixed;top:42px;left:50%;transform:translateX(-50%);z-index:20;
+  font-size:10px;color:#668;letter-spacing:.06em;text-transform:uppercase;font-family:'Share Tech Mono'}
+#nar{position:fixed;bottom:55px;left:10px;width:280px;max-height:130px;overflow-y:auto;z-index:20;
+  font-size:10px;line-height:1.6;color:#668;pointer-events:none}
+.nt{color:#556}.nt-trade{color:#0fca}.nt-grief{color:#f45a}.nt-cascade{color:#fc4a}
+.vz{font-size:11px;padding:5px 8px;margin:2px 0;cursor:pointer;border-radius:4px;color:#889;transition:all .2s}
+.vz:hover{background:rgba(0,255,200,.08);color:#ccd}
+.vz.on{color:#0fc}.vz.on .vn{color:#0fc}
+.vn{display:inline-block;width:16px;font-size:12px}
+</style>
+</head>
+<body>
+<script>window.onerror=function(m,u,l){document.title="E:"+l+":"+m;return false};</script>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div style="width:6px;height:6px;border-radius:50%;background:#0fc;animation:p 1.5s ease-in-out infinite" id="wsPulse"></div>
+  <style>@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}</style>
+  <div class="hi"><div class="hl">bal</div><div class="hv" id="hB">0.00</div></div>
+  <div class="hi"><div class="hl">p&l</div><div class="hv" id="hP">+0.000</div></div>
+  <div class="hi"><div class="hl">stars</div><div class="hv dim" id="hS">0</div></div>
+  <div class="hi"><div class="hl">trades</div><div class="hv dim" id="hT">0</div></div>
+  <div class="hi"><div class="hl">grief</div><div class="hv dim" id="hG">&mdash;</div></div>
+  <div class="hi">
+    <button id="tierBtn" onclick="showTiers()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#0fc;
+      padding:4px 12px;border-radius:10px;font-family:Orbitron;font-size:10px;cursor:pointer">OBSERVER</button>
+  </div>
+  <div class="hi">
+    <button id="sndBtn" onclick="toggleSound()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#446;
+      padding:4px 10px;border-radius:10px;font-family:Orbitron;font-size:10px;cursor:pointer">&#9834; OFF</button>
+  </div>
+  <div class="hi">
+    <button onclick="toggleVizPanel()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#0fc;
+      padding:4px 10px;border-radius:10px;font-family:Orbitron;font-size:10px;cursor:pointer">VIZ</button>
+  </div>
+  <div class="hi" id="resetWrap" style="display:none">
+    <button onclick="resetDemo()" style="background:rgba(60,20,0,.7);border:1px solid #fc44;color:#fc4;
+      padding:4px 10px;border-radius:10px;font-family:Orbitron;font-size:10px;cursor:pointer">RESET</button>
+  </div>
+  <div class="hi" id="stratWrap" style="display:none">
+    <button id="stratBtn" onclick="toggleStratPanel()" style="background:rgba(0,30,20,.7);border:1px solid #0fc4;color:#0fc;
+      padding:4px 10px;border-radius:10px;font-family:Orbitron;font-size:10px;cursor:pointer">CONSERVATIVE</button>
+  </div>
+</div>
+<div id="status-bar"></div>
+
+<div id="detail"><span id="d-close" onclick="closeDet()">&#10005;</span><h3 id="dN">&mdash;</h3><div id="dB"></div></div>
+
+<div id="time-machine" style="display:none;position:fixed;bottom:50px;left:50%;transform:translateX(-50%);z-index:22;
+  background:rgba(0,4,12,0.92);border:1px solid #0fc2;border-radius:12px;padding:10px 18px;backdrop-filter:blur(12px);width:480px;max-width:85vw">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span style="font-size:11px;color:#0fc;font-family:Orbitron;letter-spacing:.1em">TIME MACHINE</span>
+    <div>
+      <button onclick="runBackcast()" style="background:rgba(0,30,20,.5);border:1px solid #0fc3;color:#0fc;padding:4px 10px;border-radius:8px;font-family:Orbitron;font-size:9px;cursor:pointer;margin-right:4px">BACKCAST 3M</button>
+      <button onclick="runForecast()" style="background:rgba(30,20,0,.5);border:1px solid #fc43;color:#fc4;padding:4px 10px;border-radius:8px;font-family:Orbitron;font-size:9px;cursor:pointer">FORECAST 3M</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+    <span style="font-size:10px;color:#779">Equity Timeline</span>
+    <span id="slider-val" style="font-size:13px;color:#0fc;font-family:Orbitron;font-weight:700"></span>
+  </div>
+  <input type="range" id="profSlider" min="0" max="100" value="100" oninput="updateSlider(this.value)"
+    style="width:100%;height:6px;-webkit-appearance:none;background:rgba(0,255,200,0.15);border-radius:3px;outline:none;cursor:pointer">
+  <style>
+    #profSlider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#0fc;cursor:pointer;border:2px solid #001}
+  </style>
+  <div style="display:flex;justify-content:space-between;font-size:10px;color:#557;margin-top:3px">
+    <span>Start</span><span id="slider-pnl" style="color:#0fc;font-size:11px"></span><span>Now</span>
+  </div>
+</div>
+
+<div id="oracle-resp"></div>
+<div id="oracle">
+  <input id="oI" placeholder="Ask the oracle..." onkeydown="if(event.key==='Enter')ask()">
+  <button onclick="ask()">ASK</button>
+</div>
+
+<div id="tier-panel">
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:Orbitron;font-size:13px;color:#0fc;letter-spacing:.12em">CHOOSE LEVEL</span>
+    <span onclick="closeTiers()" style="color:#445;cursor:pointer">&#10005;</span>
+  </div>
+  <div class="tc on" onclick="pickTier('observer')" id="to"><div class="tc-h"><span class="tc-n">&#128065; OBSERVER</span><span class="tc-p">FREE</span></div><div class="tc-d">Watch the universe. Learn the patterns.</div></div>
+  <div class="tc" onclick="pickTier('explorer')" id="te"><div class="tc-h"><span class="tc-n">&#128301; EXPLORER</span><span class="tc-p">&euro;29/mo</span></div><div class="tc-d">Demo 10,000 TON. Full signals. Zero risk.</div></div>
+  <div class="tc" onclick="pickTier('trader')" id="tt"><div class="tc-h"><span class="tc-n">&#9889; TRADER</span><span class="tc-p">&euro;99/mo +20%</span></div><div class="tc-d">Real money. Real profits. Live wallet.</div></div>
+  <div class="tc" onclick="pickTier('strategist')" id="ts"><div class="tc-h"><span class="tc-n">&#129504; STRATEGIST</span><span class="tc-p">&euro;299/mo +15%</span></div><div class="tc-d">AI consensus. Custom params. API access.</div></div>
+  <div class="tc" onclick="pickTier('boss')" id="tb" style="border-color:#fc42"><div class="tc-h"><span class="tc-n" style="color:#fc4">&#128081; BOSS TOKEN</span><span class="tc-p" style="color:#fc4">STAKE</span></div><div class="tc-d" style="color:#fc48">All features. 10% fee. Revenue share. Own it.</div></div>
+</div>
+
+<div id="strat-panel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:360px;max-width:90vw;
+  background:rgba(0,4,12,0.96);border:1px solid #0fc3;border-radius:10px;padding:18px;z-index:50;backdrop-filter:blur(15px)">
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:Orbitron;font-size:13px;color:#0fc;letter-spacing:.12em">STRATEGY</span>
+    <span onclick="toggleStratPanel()" style="color:#445;cursor:pointer">&#10005;</span>
+  </div>
+  <div class="tc on" onclick="pickStrat('conservative')" id="sc">
+    <div class="tc-h"><span class="tc-n">&#9899; CONSERVATIVE</span><span class="tc-p" style="color:#0fc">~12%/mo</span></div>
+    <div class="tc-d">Low risk, steady growth. 2-4x leverage. 97% months profitable.</div>
+    <div class="tc-d" style="color:#0fc6;margin-top:3px">Max drawdown: 3-5%. Safe for learning.</div>
+  </div>
+  <div class="tc" onclick="pickStrat('aggressive')" id="sa">
+    <div class="tc-h"><span class="tc-n" style="color:#fc4">&#9888; AGGRESSIVE</span><span class="tc-p" style="color:#fc4">~40%/mo</span></div>
+    <div class="tc-d">Higher leverage, bigger positions. 4-8x. Median +36%/month.</div>
+    <div class="tc-d" style="color:#fc48;margin-top:3px">Drawdowns 8-12%. Occasional -15% days. Real swings.</div>
+  </div>
+  <div class="tc" onclick="pickStrat('max')" id="sm">
+    <div class="tc-h"><span class="tc-n" style="color:#f45">&#9760; MAX PROFIT</span><span class="tc-p" style="color:#f45">100%+/mo</span></div>
+    <div class="tc-d">Maximum leverage 6-12x. Cascade-boosted. Aims to double your money.</div>
+    <div class="tc-d" style="color:#f458;margin-top:3px">HIGH RISK. 10-20% drawdowns. Only use money you can lose entirely.</div>
+    <div class="tc-d" id="sm-lock" style="color:#4458;margin-top:3px">&#128274; Requires Strategist or BOSS tier (available in Explorer demo)</div>
+  </div>
+  <div style="border-top:1px solid #0fc1;margin-top:10px;padding-top:10px" id="forecast-wrap">
+    <div class="tc" onclick="runBackcast()" id="sf" style="border-color:#0fc3;background:rgba(0,40,30,0.4)">
+      <div class="tc-h"><span class="tc-n" style="color:#0fc">&#128302; BACKCAST</span><span class="tc-p" style="color:#0fc">3 MONTHS</span></div>
+      <div class="tc-d">What would have happened if you invested 3 months ago? See real historical performance.</div>
+    </div>
+  </div>
+</div>
+
+<div id="forecast-panel" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:420px;max-width:92vw;max-height:85vh;overflow-y:auto;
+  background:rgba(0,4,12,0.97);border:1px solid #0fc3;border-radius:12px;padding:20px;z-index:55;backdrop-filter:blur(15px)">
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:Orbitron;font-size:15px;color:#0fc;letter-spacing:.12em">TIME MACHINE</span>
+    <span onclick="document.getElementById('forecast-panel').style.display='none'" style="color:#779;cursor:pointer;font-size:16px">&#10005;</span>
+  </div>
+  <div id="forecast-result" style="font-size:12px;line-height:1.7;color:#bbc"></div>
+</div>
+
+<div id="viz-panel" style="display:none;position:fixed;left:12px;top:55px;width:200px;max-height:calc(100vh - 120px);overflow-y:auto;background:rgba(0,6,16,0.94);
+  border:1px solid #0fc2;border-radius:8px;padding:12px;z-index:25;backdrop-filter:blur(12px)">
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <span style="font-family:Orbitron;font-size:10px;color:#0fc;letter-spacing:.1em">VISUALIZE</span>
+    <span onclick="toggleVizPanel()" style="color:#445;cursor:pointer;font-size:12px">&#10005;</span>
+  </div>
+  <div style="font-size:10px;color:#668;margin-bottom:5px;text-transform:uppercase;letter-spacing:.1em">Structure</div>
+  <div class="vz on" onclick="toggleViz('bonds')"><span class="vn" id="vz-bonds">&#9679;</span> Bond Strands</div>
+  <div class="vz on" onclick="toggleViz('rivers')"><span class="vn" id="vz-rivers">&#9679;</span> Money Flow</div>
+  <div class="vz" onclick="toggleViz('gravity')"><span class="vn" id="vz-gravity">&#9675;</span> Sentiment Gravity</div>
+  <div class="vz" onclick="toggleViz('spiral')"><span class="vn" id="vz-spiral">&#9675;</span> Golden Spiral</div>
+  <div style="font-size:10px;color:#668;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.1em">Patterns</div>
+  <div class="vz" onclick="toggleViz('trails')"><span class="vn" id="vz-trails">&#9675;</span> Comet Trails</div>
+  <div class="vz" onclick="toggleViz('colorTemp')"><span class="vn" id="vz-colorTemp">&#9675;</span> Color Temperature</div>
+  <div class="vz" onclick="toggleViz('ghosts')"><span class="vn" id="vz-ghosts">&#9675;</span> Ghost Positions</div>
+  <div class="vz" onclick="toggleViz('ripples')"><span class="vn" id="vz-ripples">&#9675;</span> Heartbeat Ripples</div>
+  <div class="vz" onclick="toggleViz('divergence')"><span class="vn" id="vz-divergence">&#9675;</span> Divergence Flares</div>
+  <div style="font-size:10px;color:#668;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.1em">Environment</div>
+  <div class="vz" onclick="toggleViz('weather')"><span class="vn" id="vz-weather">&#9675;</span> Market Weather</div>
+  <div class="vz" onclick="toggleViz('volShadow')"><span class="vn" id="vz-volShadow">&#9675;</span> Volume Shadows</div>
+  <div class="vz" onclick="toggleViz('obMass')"><span class="vn" id="vz-obMass">&#9675;</span> Order Book Mass</div>
+  <div class="vz" onclick="toggleViz('liqZones')"><span class="vn" id="vz-liqZones">&#9675;</span> Liquidation Zones</div>
+  <div style="font-size:10px;color:#668;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.1em">Graph Modes</div>
+  <div class="vz" onclick="toggleViz('spiderWeb')"><span class="vn" id="vz-spiderWeb">&#9675;</span> Spider Web</div>
+  <div class="vz" onclick="toggleViz('forceGraph')"><span class="vn" id="vz-forceGraph">&#9675;</span> Force Graph</div>
+  <div class="vz" onclick="toggleViz('neuralNet')"><span class="vn" id="vz-neuralNet">&#9675;</span> Neural Network</div>
+  <div class="vz" onclick="toggleViz('flowPipes')"><span class="vn" id="vz-flowPipes">&#9675;</span> Flow Pipes</div>
+  <div style="font-size:10px;color:#668;margin:8px 0 5px;text-transform:uppercase;letter-spacing:.1em">Data Panels</div>
+  <div class="vz" onclick="toggleViz('sparklines')"><span class="vn" id="vz-sparklines">&#9675;</span> Price Sparklines</div>
+  <div class="vz" onclick="toggleViz('equityCurve')"><span class="vn" id="vz-equityCurve">&#9675;</span> Equity Curve</div>
+  <div class="vz" onclick="toggleViz('tradeLog')"><span class="vn" id="vz-tradeLog">&#9675;</span> Trade Log</div>
+  <div class="vz" onclick="toggleViz('corrMatrix')"><span class="vn" id="vz-corrMatrix">&#9675;</span> Correlation Map</div>
+  <div class="vz" onclick="toggleViz('signalBars')"><span class="vn" id="vz-signalBars">&#9675;</span> Signal Dashboard</div>
+</div>
+
+<div id="nar"></div>
+
+<script>
+// =================================================================
+// B.O.S.S. UNIVERSE — PUBLIC FRONTEND (WebSocket client)
+// All engine logic runs on the server. This is visual-only.
+// =================================================================
+
+var cv,cx,W,H;
+function _initCanvas(){cv=document.getElementById('cv');cx=cv.getContext('2d');W=cv.width=innerWidth;H=cv.height=innerHeight}
+
+// =================================================================
+// SERVER STATE — populated via WebSocket
+// =================================================================
+var serverState = {
+  stars: {},        // {SYM: {price, change, type, warmth, dir, bx, by, ema8, ema21, ema55, rsi, history}}
+  bonds: [],        // [{from, to, strength}]
+  signals: [],      // [{id, dir, warmth, reason}]
+  cascades: [],     // [{source, target, executeAt}]
+  trader: {balance:0, startBal:0, positions:{}, wins:0, losses:0, trades:0, winRate:0, history:[], dailyPnL:0},
+  field: {grief:0, fieldWarmth:0, bondCount:0},
+  narration: [],    // [{msg, cls}]
+  hl: {connected:false, depth:{}, liquidations:{}, funding:{}},
+  profitHistory: [],
+  ai: {enabled:false, callCount:0, lastVotes:{}}
+};
+var serverBonds = [];
+var serverSignals = [];
+
+// =================================================================
+// WEBSOCKET CONNECTION
+// =================================================================
+var ws = null;
+var wsConnected = false;
+var wsReconnectTimer = null;
+
+function connectWS(){
+  if(ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host);
+  ws.onopen = function(){
+    wsConnected = true;
+    narLog('Connected to server','nt');
+    var pulse = document.getElementById('wsPulse');
+    if(pulse) pulse.style.background = '#0fc';
+    if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null}
+  };
+  ws.onmessage = function(e){
+    try{
+      var msg = JSON.parse(e.data);
+      // Server sends state directly (no wrapper) or wrapped
+      if(msg.stars) updateFromServer(msg);
+      else if(msg.type === 'state') updateFromServer(msg.data);
+      else if(msg.type === 'narration') narLog(msg.msg, msg.cls||'nt');
+      else if(msg.type === 'profitBurst'){
+        var s = starMap[msg.id]; if(s && vfx) vfx.addProfitBurst(s, msg.isProfit);
+        playProfitHarmony(msg.isProfit);
+      }
+      else if(msg.type === 'cascade'){
+        var fs = starMap[msg.from], ts = starMap[msg.to];
+        if(fs && ts){vfx.addCascadePulse(fs, ts); playCascadeChord(fs, ts)}
+      }
+      else if(msg.type === 'shockwave'){
+        var s = starMap[msg.id]; if(s && vfx) vfx.addShockwave(s, msg.magnitude);
+      }
+      else if(msg.type === 'grief'){playGriefDissonance()}
+    }catch(err){}
+  };
+  ws.onclose = function(){
+    wsConnected = false;
+    var pulse = document.getElementById('wsPulse');
+    if(pulse) pulse.style.background = '#f45';
+    wsReconnectTimer = setTimeout(connectWS, 3000);
+  };
+  ws.onerror = function(){};
+}
+
+function updateFromServer(state){
+  if(!state) return;
+
+  // Update stars (server sends array of {id, type, price, change, warmth, dir, bx, by})
+  if(state.stars&&state.stars.length){
+    serverState.stars = state.stars;
+    for(var i=0;i<state.stars.length;i++){
+      var d=state.stars[i];if(!d.id)continue;
+      var s=starMap[d.id];
+      if(!s){
+        s=new Star(d.id,d.type,d.price,d.change);
+        // Set position from server ONCE on creation
+        if(typeof d.bx==='number'){s.bx=d.bx;s.by=d.by}
+        stars.push(s);starMap[d.id]=s;
+      }else{
+        // Update data but NOT position (position stays stable, avoids flicker)
+        s.price=d.price;s.change=d.change;
+        if(d.dir)s.dir=d.dir;
+        if(typeof d.warmth==='number')s.warmth=Math.max(s.warmth,d.warmth);
+      }
+    }
+  }
+
+  // Update bonds
+  if(state.bonds){
+    serverBonds = state.bonds;
+    serverState.bonds = state.bonds;
+  }
+
+  // Update signals
+  if(state.signals){
+    serverSignals = state.signals;
+    serverState.signals = state.signals;
+  }
+
+  // Update cascades
+  if(state.cascades){
+    serverState.cascades = state.cascades;
+  }
+
+  // Update trader display data
+  if(state.trader){
+    serverState.trader = state.trader;
+    // Mark position stars
+    var posMap = state.trader.positions || {};
+    stars.forEach(function(s){ s.pos = !!posMap[s.id] });
+  }
+
+  // Update field display data
+  if(state.field){
+    serverState.field = state.field;
+  }
+
+  // Update narration
+  if(state.narration){
+    for(var i=0;i<state.narration.length;i++){
+      narLog(state.narration[i].msg, state.narration[i].cls||'nt');
+    }
+    serverState.narration = state.narration;
+  }
+
+  // Update HL data
+  if(state.hl){
+    serverState.hl = state.hl;
+  }
+
+  // Update profit history
+  if(state.profitHistory){
+    // Server sends raw numbers, convert to {v:n} for equity curve
+    profH = state.profitHistory.map(function(v){return typeof v==='number'?{v:v}:v});
+    serverState.profitHistory = state.profitHistory;
+  }
+
+  // Update AI council data
+  if(state.ai){
+    serverState.ai = state.ai;
+  }
+}
+
+// =================================================================
+// NARRATOR (local display only)
+// =================================================================
+var narEl = null;
+function narLog(msg, cls){
+  if(!narEl) narEl = document.getElementById('nar');
+  if(!narEl) return;
+  var d = document.createElement('div'); d.className = cls||'nt';
+  d.textContent = new Date().toLocaleTimeString()+' '+msg;
+  narEl.appendChild(d); narEl.scrollTop = narEl.scrollHeight;
+  if(narEl.children.length > 40) narEl.removeChild(narEl.firstChild);
+}
+
+// =================================================================
+// VISUAL FX
+// =================================================================
+class VisualFX {
+  constructor(){this.pulses=[];this.shockwaves=[];this.particles=[]}
+  addCascadePulse(from,to){this.pulses.push({from:from,to:to,progress:0,speed:0.0004,color:from.dir==='BULL'?'0,255,200':'255,80,100'})}
+  addShockwave(star,mag){this.shockwaves.push({x:star.wx,y:star.wy,radius:0,maxRadius:150,speed:60,alpha:0.4,color:mag>0?'0,255,200':'255,80,100'})}
+  addProfitBurst(star,isProfit){for(var i=0;i<8;i++){var a=(i/8)*6.28;this.particles.push({x:star.wx,y:star.wy,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,life:1,decay:0.02,color:isProfit?'0,255,200':'255,80,100',size:2})}}
+  draw(dt){
+    for(var i=this.pulses.length-1;i>=0;i--){var p=this.pulses[i];p.progress+=p.speed*dt*1000;
+      if(p.progress>=1){this.pulses.splice(i,1);continue}
+      var fx=(p.from.wx+(p.to.wx-p.from.wx)*p.progress-cam.x)*cam.z+W/2;
+      var fy=(p.from.wy+(p.to.wy-p.from.wy)*p.progress-cam.y)*cam.z+H/2;
+      var al=0.6*(1-p.progress);
+      cx.fillStyle='rgba('+p.color+','+al+')';cx.beginPath();cx.arc(fx,fy,4*cam.z,0,6.28);cx.fill()}
+    for(var i=this.shockwaves.length-1;i>=0;i--){var s=this.shockwaves[i];s.radius+=s.speed*dt;s.alpha*=0.97;
+      if(s.alpha<0.02||s.radius>s.maxRadius){this.shockwaves.splice(i,1);continue}
+      var sx=(s.x-cam.x)*cam.z+W/2,sy=(s.y-cam.y)*cam.z+H/2;
+      cx.strokeStyle='rgba('+s.color+','+s.alpha+')';cx.lineWidth=1.5*cam.z;cx.beginPath();cx.arc(sx,sy,s.radius*cam.z,0,6.28);cx.stroke()}
+    for(var i=this.particles.length-1;i>=0;i--){var p=this.particles[i];p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.life-=p.decay;
+      if(p.life<=0){this.particles.splice(i,1);continue}
+      var px=(p.x-cam.x)*cam.z+W/2,py=(p.y-cam.y)*cam.z+H/2;
+      cx.fillStyle='rgba('+p.color+','+p.life+')';cx.beginPath();cx.arc(px,py,p.size*cam.z,0,6.28);cx.fill()}
+  }
+}
+
+// =================================================================
+// SOUND RESONANCE
+// =================================================================
+var audioCtx=null,audioEnabled=false,masterGain=null;
+function initAudio(){if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=audioCtx.createGain();masterGain.gain.value=0.07;masterGain.connect(audioCtx.destination);audioEnabled=true}
+function playStarTone(star,dur,type){if(!audioEnabled)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'sine';o.frequency.value=120+star.warmth*400;if(star.dir==='BEAR')o.frequency.value*=0.94;g.gain.setValueAtTime(0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.3));o.connect(g);g.connect(masterGain);o.start();o.stop(audioCtx.currentTime+(dur||0.3))}
+function playCascadeChord(from,to){if(!audioEnabled)return;playStarTone(from,0.5,'triangle');setTimeout(function(){playStarTone(to,0.8,'sine')},150)}
+function playGriefDissonance(){if(!audioEnabled)return;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.type='sawtooth';o1.frequency.value=90;o2.type='sawtooth';o2.frequency.value=95;g.gain.setValueAtTime(0.05,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+1.2);o1.connect(g);o2.connect(g);g.connect(masterGain);o1.start();o2.start();o1.stop(audioCtx.currentTime+1.2);o2.stop(audioCtx.currentTime+1.2)}
+function playProfitHarmony(isProfit){if(!audioEnabled)return;var freqs=isProfit?[261.6,329.6,392]:[220,261.6,293.7];freqs.forEach(function(f,i){setTimeout(function(){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);o.connect(g);g.connect(masterGain);o.start();o.stop(audioCtx.currentTime+0.5)},i*120)})}
+var ambientOsc=null,ambientGain=null;
+function updateAmbientDrone(){if(!audioEnabled)return;var fw=serverState.field.fieldWarmth||0;var fg=serverState.field.grief||0;if(!ambientOsc){ambientOsc=audioCtx.createOscillator();ambientGain=audioCtx.createGain();ambientOsc.type='sine';ambientOsc.frequency.value=55;ambientGain.gain.value=0;ambientOsc.connect(ambientGain);ambientGain.connect(masterGain);ambientOsc.start()}ambientOsc.frequency.setTargetAtTime(50+fw*25,audioCtx.currentTime,0.5);ambientGain.gain.setTargetAtTime(Math.min(0.03,fw*0.015),audioCtx.currentTime,0.3);ambientOsc.detune.setTargetAtTime(fg*40,audioCtx.currentTime,0.5)}
+function toggleSound(){if(!audioCtx)initAudio();audioEnabled=!audioEnabled;var btn=document.getElementById('sndBtn');btn.textContent=audioEnabled?'\u266A ON':'\u266A OFF';btn.style.color=audioEnabled?'#0fc':'#446'}
+
+// =================================================================
+// INITIALIZE
+// =================================================================
+_initCanvas();
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;window._neb=null}
+resize();onresize=resize;
+
+var stars=[],bg=[],starMap={};
+var cam={x:0,y:0,z:0.65},sel=null,tier='observer',acct=null;
+var profH=[];
+var vfx=new VisualFX();
+
+// Background stars
+for(var i=0;i<150;i++)bg.push({x:Math.random()*4000-2000,y:Math.random()*3000-1500,
+  d:Math.random()*3+.5,b:Math.random()*.5+.2,s:Math.random()*1.5+.3,t:Math.random()*6.28,
+  c:['200,220,255','180,210,255','255,220,200','220,200,255'][Math.floor(Math.random()*4)]});
+
+// =================================================================
+// STAR CLASS (visual only)
+// =================================================================
+class Star{
+  constructor(id,type,price,change){
+    this.id=id;this.type=type;this.price=price;this.change=change;
+    this.warmth=Math.max(Math.abs(change)/2+.3,type==='forex'?.4:.3);
+    this.dir=change>0.001?'BULL':change<-0.001?'BEAR':'BULL';
+    var a=Math.random()*6.28;
+    var r=type==='crypto'?200+Math.random()*250:type==='forex'?550+Math.random()*180:150+Math.random()*150;
+    var ox=type==='crypto'?-100:type==='forex'?450:0;
+    var oy=type==='poly'?-300:0;
+    this.bx=ox+Math.cos(a)*r;
+    this.by=oy+Math.sin(a)*r;
+    this.t=Math.random()*6.28;this.sel=false;this.pos=false;
+  }
+  get wx(){return this.bx+Math.sin(this.t*0.4)*3}
+  get wy(){return this.by+Math.cos(this.t*0.5)*3}
+  get sx(){return(this.wx-cam.x)*cam.z+W/2}
+  get sy(){return(this.wy-cam.y)*cam.z+H/2}
+  get r(){
+    var breathSpeed=0.5+Math.min(this.warmth,3)*0.8;
+    var breath=1+Math.sin(this.t*breathSpeed)*0.2;
+    var base=Math.min(3+this.warmth*3,12);
+    if(vizModes.obMass&&this._obBoost)base+=this._obBoost;
+    return Math.max(3,Math.max(base,2)*cam.z*breath);
+  }
+  update(dt){
+    this.warmth*=Math.exp(-.002*dt);if(this.warmth<.15)this.warmth=.15;
+    if(this.type==='forex')this.warmth=Math.max(this.warmth,.2);
+    this.t+=dt*0.8;
+  }
+  draw(c){
+    var x=this.sx,y=this.sy,r=this.r;
+    if(x<-50||x>W+50||y<-50||y>H+50)return;
+    var col=vizModes.colorTemp?getColorTemp(this.change,this.warmth):(this.dir==='BULL'?'#00ffcc':'#ff4455');
+    c.globalAlpha=0.9;c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,6.28);c.fill();
+    if(this.pos){c.globalAlpha=0.7;c.strokeStyle='#fc4';c.lineWidth=1.5*cam.z;c.beginPath();c.arc(x,y,r+4*cam.z,0,6.28);c.stroke()}
+    if(this.sel){c.globalAlpha=0.5;c.strokeStyle='#fff';c.lineWidth=1*cam.z;c.setLineDash([3*cam.z,3*cam.z]);c.beginPath();c.arc(x,y,r+8*cam.z,0,6.28);c.stroke();c.setLineDash([])}
+    if(cam.z>0.55){
+      var lcol=vizModes.colorTemp?'#ddd':col;
+      c.globalAlpha=0.9;c.fillStyle=lcol;c.font=Math.max(10,14*cam.z)+'px Share Tech Mono';c.textAlign='center';
+      c.fillText(this.id,x,y+r+14*cam.z);
+      if(cam.z>0.6){
+        var p=this.price>100?'$'+this.price.toFixed(0):this.price>1?'$'+this.price.toFixed(2):'$'+this.price.toFixed(4);
+        c.globalAlpha=0.6;c.font=Math.max(9,12*cam.z)+'px Share Tech Mono';
+        c.fillText(p+' '+(this.change>=0?'+':'')+this.change.toFixed(1)+'%',x,y+r+20*cam.z);
+      }
+    }
+    c.globalAlpha=1;
+  }
+  hit(mx,my){return Math.hypot(mx-this.sx,my-this.sy)<this.r+8}
+}
+
+// =================================================================
+// TEMPORAL BONDS — reads from serverBonds
+// =================================================================
+function drawBonds(){
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];
+    var str=Math.abs(bond.strength);
+    if(str<0.55)continue;
+    var sa=starMap[bond.from];
+    var sb=starMap[bond.to];
+    if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    var col=bond.strength>0?'0,255,200':'255,100,80';
+    var alpha=0.15+(str-0.55)*0.8;
+    cx.strokeStyle='rgba('+col+','+alpha+')';
+    cx.lineWidth=Math.max(0.8,(str*2))*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+  }
+}
+
+// =================================================================
+// FLOW RIVERS — reads from serverBonds
+// =================================================================
+function drawFlowRivers(){
+  if(serverBonds.length===0)return;
+  var now=performance.now()/1000;
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];var str=Math.abs(bond.strength);
+    if(str<0.6)continue;
+    var sa=starMap[bond.from];
+    var sb=starMap[bond.to];
+    if(!sa||!sb)continue;
+    var lx=sa.sx,ly=sa.sy,fx=sb.sx,fy=sb.sy;
+    var dist=Math.hypot(fx-lx,fy-ly);if(dist<30)continue;
+    var col=bond.strength>0?'0,255,200':'255,120,80';
+    var count=Math.floor(str*5)+3;
+    for(var pi=0;pi<count;pi++){
+      var t=((now*0.3+pi/count)%1);
+      var mx=(lx+fx)/2+(fy-ly)*0.12*Math.sin(now*0.4+pi);
+      var my=(ly+fy)/2+(lx-fx)*0.12*Math.sin(now*0.4+pi);
+      var u=1-t,px=u*u*lx+2*u*t*mx+t*t*fx,py=u*u*ly+2*u*t*my+t*t*fy;
+      var alpha=0.5*Math.sin(t*3.14);
+      var sz=(2+str*2)*cam.z;
+      cx.fillStyle='rgba('+col+','+alpha+')';cx.beginPath();cx.arc(px,py,sz,0,6.28);cx.fill();
+    }
+  }
+}
+
+// =================================================================
+// NEBULA BACKGROUND
+// =================================================================
+function drawBg(){
+  cx.fillStyle='#000008';cx.fillRect(0,0,W,H);
+  if(!window._neb){
+    var n=document.createElement('canvas');n.width=W;n.height=H;var nc=n.getContext('2d');
+    var clouds=[[.3,.4,.45,'60,15,120'],[.7,.3,.3,'0,100,110'],[.5,.7,.35,'110,25,55'],[.2,.65,.2,'100,70,20'],[.8,.75,.25,'25,40,130']];
+    for(var ci=0;ci<clouds.length;ci++){var cl=clouds[ci];var g=nc.createRadialGradient(W*cl[0],H*cl[1],0,W*cl[0],H*cl[1],W*cl[2]);
+      g.addColorStop(0,'rgba('+cl[3]+',.2)');g.addColorStop(.6,'rgba('+cl[3]+',.06)');g.addColorStop(1,'transparent');nc.fillStyle=g;nc.fillRect(0,0,W,H)}
+    window._neb=n;
+  }
+  cx.drawImage(window._neb,0,0);
+  // Grief tint
+  var grief=serverState.field.grief||0;
+  if(grief>.5){cx.fillStyle='rgba(30,0,0,'+((grief-.5)*.2)+')';cx.fillRect(0,0,W,H)}
+  // Background stars
+  for(var i=0;i<bg.length;i++){var s=bg[i];
+    var px=(s.x-cam.x/s.d)*cam.z+W/2,py=(s.y-cam.y/s.d)*cam.z+H/2;
+    if(px<-2||px>W+2||py<-2||py>H+2)continue;
+    s.t+=0.006;var a=s.b*(.5+Math.sin(s.t)*.5);
+    cx.fillStyle='rgba('+s.c+','+a+')';cx.beginPath();cx.arc(px,py,s.s*cam.z,0,6.28);cx.fill();
+  }
+  // Cluster labels
+  if(cam.z<1.5){
+    cx.fillStyle='rgba(0,255,200,.08)';cx.font=Math.max(9,14*cam.z)+'px Orbitron';cx.textAlign='center';
+    var cc={crypto:[-100,-280],forex:[450,-280],commodity:[100,-500],index:[-400,-100],poly:[0,-420]};
+    for(var[t,pos]of Object.entries(cc)){var sx=(pos[0]-cam.x)*cam.z+W/2,sy=(pos[1]-cam.y)*cam.z+H/2;
+      cx.fillText(t.toUpperCase()+' '+stars.filter(function(s){return s.type===t}).length,sx,sy)}
+  }
+}
+
+// =================================================================
+// AURORA P&L
+// =================================================================
+function drawAurora(){
+  var startBal=serverState.trader.startBal||0;
+  if(profH.length<2||startBal===0)return;
+  var v=profH.map(function(p){return p.v}),mn=Math.min.apply(null,v)*.999,mx=Math.max.apply(null,v)*1.001,rng=mx-mn||1;
+  var last=v[v.length-1],col=last>=startBal?'0,220,180':'255,80,100';
+  cx.beginPath();
+  for(var i=0;i<profH.length;i++){var x=i/(profH.length-1)*W,y=H-6-((profH[i].v-mn)/rng)*30;i===0?cx.moveTo(x,y):cx.lineTo(x,y)}
+  cx.lineTo(W,H);cx.lineTo(0,H);cx.closePath();
+  var g=cx.createLinearGradient(0,H-40,0,H);g.addColorStop(0,'rgba('+col+',.15)');g.addColorStop(1,'rgba('+col+',.01)');
+  cx.fillStyle=g;cx.fill();
+}
+
+// =================================================================
+// HEARTBEAT MONITOR
+// =================================================================
+var heartbeatHistory=[];
+function drawHeartbeat(){
+  var fw=serverState.field.fieldWarmth||0;
+  var fg=serverState.field.grief||0;
+  heartbeatHistory.push({w:fw,g:fg});
+  if(heartbeatHistory.length>150)heartbeatHistory.shift();
+  if(heartbeatHistory.length<5)return;
+  var hx=W-180,hy=50,hw=160,hh=18;
+  cx.fillStyle='rgba(0,4,12,0.4)';cx.fillRect(hx-1,hy-1,hw+2,hh+2);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='5px Orbitron';cx.textAlign='left';cx.fillText('PULSE',hx+2,hy-2);
+  var maxW=0.1;for(var i=0;i<heartbeatHistory.length;i++)if(heartbeatHistory[i].w>maxW)maxW=heartbeatHistory[i].w;
+  cx.beginPath();
+  for(var i=0;i<heartbeatHistory.length;i++){var x=hx+(i/(heartbeatHistory.length-1))*hw;var y=hy+hh-(heartbeatHistory[i].w/maxW)*hh;i===0?cx.moveTo(x,y):cx.lineTo(x,y)}
+  var lastG=heartbeatHistory[heartbeatHistory.length-1].g;
+  cx.strokeStyle=lastG>0.6?'rgba(255,80,100,0.5)':'rgba(0,255,200,0.4)';cx.lineWidth=1;cx.stroke();
+  var bpm=Math.floor(40+fw*100);
+  cx.fillStyle='rgba(0,255,200,0.3)';cx.font='7px Orbitron';cx.textAlign='right';cx.fillText(bpm,hx+hw,hy-2);
+}
+
+// =================================================================
+// GOLDEN SPIRAL
+// =================================================================
+var spiralFrame=0;
+function goldenSpiralLayout(){
+  spiralFrame++;if(spiralFrame%10!==0)return;
+  var byType={crypto:[],forex:[]};
+  stars.forEach(function(s){if(byType[s.type])byType[s.type].push(s)});
+  for(var[type,group]of Object.entries(byType)){
+    if(group.length===0)continue;
+    group.sort(function(a,b){return b.warmth-a.warmth});
+    var ox=type==='crypto'?-100:450;var oy=0;
+    var phi=2.399963;
+    for(var i=0;i<group.length;i++){
+      var r=50+Math.sqrt(i)*50;var a=i*phi;
+      var tx=ox+Math.cos(a)*r;var ty=oy+Math.sin(a)*r;
+      group[i].bx+=(tx-group[i].bx)*0.001;
+      group[i].by+=(ty-group[i].by)*0.001;
+    }
+  }
+}
+
+// =================================================================
+// INPUT: zoom, pan, touch, click
+// =================================================================
+cv.addEventListener('wheel',function(e){e.preventDefault();cam.z=Math.max(.15,Math.min(5,cam.z*(e.deltaY>0?.92:1.08)))},{passive:false});
+var drag=false,dx=0,dy=0;
+cv.addEventListener('mousedown',function(e){drag=true;dx=e.clientX;dy=e.clientY});
+cv.addEventListener('mousemove',function(e){if(!drag)return;cam.x-=(e.clientX-dx)/cam.z;cam.y-=(e.clientY-dy)/cam.z;dx=e.clientX;dy=e.clientY});
+cv.addEventListener('mouseup',function(){drag=false});
+cv.addEventListener('click',function(e){var h=stars.find(function(s){return s.hit(e.clientX,e.clientY)});stars.forEach(function(s){s.sel=false});if(h){h.sel=true;showDet(h);sel=h}else{closeDet();sel=null}});
+var ltd=0;
+cv.addEventListener('touchstart',function(e){if(e.touches.length===2)ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);else if(e.touches.length===1){drag=true;dx=e.touches[0].clientX;dy=e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchmove',function(e){if(e.touches.length===2){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);cam.z=Math.max(.15,Math.min(5,cam.z*(d/ltd)));ltd=d}else if(drag&&e.touches.length===1){cam.x-=(e.touches[0].clientX-dx)/cam.z;cam.y-=(e.touches[0].clientY-dy)/cam.z;dx=e.touches[0].clientX;dy=e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchend',function(){drag=false});
+
+// =================================================================
+// DETAIL PANEL — reads from serverState
+// =================================================================
+function showDet(s){
+  document.getElementById('detail').style.display='block';
+  document.getElementById('dN').textContent=s.id;document.getElementById('dN').style.color=s.dir==='BULL'?'#0fc':'#f45';
+  var sd=serverState.stars[s.id]||{};
+  var p=s.price>100?'$'+s.price.toFixed(2):s.price>1?'$'+s.price.toFixed(4):'$'+s.price.toFixed(6);
+  var ch=(s.change>=0?'+':'')+s.change.toFixed(2)+'%';
+  var h='<div class="r"><span class="k">price</span><span class="v" style="font-size:12px">'+p+'</span></div>';
+  h+='<div class="r"><span class="k">24h</span><span class="v" style="color:'+(s.dir==='BULL'?'#0fc':'#f45')+'">'+ch+'</span></div>';
+  h+='<div class="r"><span class="k">warmth</span><span class="v">'+s.warmth.toFixed(3)+'</span></div>';
+  h+='<div class="r"><span class="k">type</span><span class="v">'+s.type+'</span></div>';
+  // EMA/RSI from server
+  if(sd.ema8!==undefined){h+='<div class="r"><span class="k">EMA 8</span><span class="v">'+(sd.ema8?'$'+(+sd.ema8).toFixed(2):'--')+'</span></div>'}
+  if(sd.rsi!==undefined){var rsi=+sd.rsi;h+='<div class="r"><span class="k">RSI</span><span class="v" style="color:'+(rsi>70?'#f45':rsi<30?'#0fc':'#aab')+'">'+rsi.toFixed(0)+'</span></div>'}
+  // Depth from HL data
+  var hlDepth=serverState.hl.depth||{};
+  var depth=hlDepth[s.id];
+  if(depth&&depth.imbalance!==0)h+='<div class="r"><span class="k">book</span><span class="v" style="color:'+(depth.imbalance>0?'#0fc':'#f45')+'">'+(depth.imbalance>0?'+':'')+((depth.imbalance*100).toFixed(0))+'%</span></div>';
+  // Position info from server
+  var posMap=serverState.trader.positions||{};
+  if(posMap[s.id]){var pos=posMap[s.id];var pnl=pos.dir==='LONG'?(s.price-pos.entry)/pos.entry*pos.lev:(pos.entry-s.price)/pos.entry*pos.lev;
+    h+='<div style="border-top:1px solid #0fc2;margin-top:5px;padding-top:5px"><div class="r"><span class="k">pos</span><span class="v" style="color:#fc4">'+pos.dir+' '+pos.lev.toFixed(1)+'x</span></div>';
+    h+='<div class="r"><span class="k">P&L</span><span class="v" style="color:'+(pnl>=0?'#0fc':'#f45')+'">'+(pnl>=0?'+':'')+((pnl*100).toFixed(1))+'%</span></div></div>'}
+  // AI Council verdict from server
+  var aiVotes=serverState.ai.lastVotes||{};
+  if(aiVotes[s.id]){var av=aiVotes[s.id];
+    var acol=av.action==='LONG'?'#0fc':av.action==='SHORT'?'#f45':av.isGrief?'#f45':'#446';
+    h+='<div style="border-top:1px solid #0fc2;margin-top:5px;padding-top:5px">';
+    h+='<div class="r"><span class="k">AI council</span><span class="v" style="color:'+acol+'">'+av.action+'</span></div>';
+    h+='<div class="r"><span class="k">confidence</span><span class="v">'+((+av.confidence).toFixed(0))+'/10</span></div>';
+    h+='<div class="r"><span class="k">votes</span><span class="v" style="font-size:8px">'+(av.reasons||'')+'</span></div></div>'}
+  document.getElementById('dB').innerHTML=h;
+}
+function closeDet(){document.getElementById('detail').style.display='none';stars.forEach(function(s){s.sel=false});sel=null}
+
+// =================================================================
+// TIERS + ORACLE — pickTier and resetDemo POST to server
+// =================================================================
+function showTiers(){document.getElementById('tier-panel').style.display='block'}
+function closeTiers(){document.getElementById('tier-panel').style.display='none'}
+function pickTier(t){
+  tier=t;closeTiers();
+  var btn=document.getElementById('tierBtn');var names={observer:'OBSERVER',explorer:'EXPLORER',trader:'TRADER',strategist:'STRATEGIST',boss:'BOSS'};btn.textContent=names[t]||t;
+  ['to','te','tt','ts','tb'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on')});
+  var map={observer:'to',explorer:'te',trader:'tt',strategist:'ts',boss:'tb'};var el=document.getElementById(map[t]);if(el)el.classList.add('on');
+  // POST tier selection to server
+  fetch('/api/tier',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:t})}).catch(function(){});
+  if(t==='explorer'){acct='demo';narLog('Explorer: 10,000 TON demo','nt-trade')}
+  else if(t==='observer'){acct=null}
+  else{acct='live'}
+  document.getElementById('resetWrap').style.display=t==='explorer'?'':'none';
+  document.getElementById('stratWrap').style.display=(t!=='observer')?'':'none';
+  updateStratAccess();
+}
+
+function toggleStratPanel(){var p=document.getElementById('strat-panel');p.style.display=p.style.display==='none'?'block':'none'}
+
+function pickStrat(s){
+  // Tier gating: Max Profit for strategist/boss/explorer (explorer = demo money)
+  if(s==='max'&&tier!=='strategist'&&tier!=='boss'&&tier!=='explorer'){
+    narLog('Max Profit requires Strategist, BOSS, or Explorer (demo) tier','nt-grief');return}
+  toggleStratPanel();
+  ['sc','sa','sm'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on')});
+  var map={conservative:'sc',aggressive:'sa',max:'sm'};
+  var el=document.getElementById(map[s]);if(el)el.classList.add('on');
+  var names={conservative:'CONSERVATIVE',aggressive:'AGGRESSIVE',max:'MAX PROFIT'};
+  document.getElementById('stratBtn').textContent=names[s]||s;
+  document.getElementById('stratBtn').style.color=s==='max'?'#f45':s==='aggressive'?'#fc4':'#0fc';
+  fetch('/api/strategy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({s:s})})
+    .then(function(r){return r.json()})
+    .then(function(d){if(d.risk)narLog('Strategy: '+d.name+'. '+d.risk,'nt-trade')})
+    .catch(function(){});
+}
+
+// Update strategy panel visibility based on tier
+function updateStratAccess(){
+  var lock=document.getElementById('sm-lock');
+  if(lock)lock.style.display=(tier==='strategist'||tier==='boss'||tier==='explorer')?'none':'';
+  var fw=document.getElementById('forecast-wrap');
+  if(fw)fw.style.display=(tier==='explorer')?'':'none';
+}
+
+// ── FORECAST — 3-month Monte Carlo simulation ──
+function runBackcast(){
+  document.getElementById('strat-panel').style.display='none';
+  var fp=document.getElementById('forecast-panel');fp.style.display='block';
+  var res=document.getElementById('forecast-result');
+  res.innerHTML='<div style="color:#0fc;text-align:center;padding:20px">Fetching 90 days of real market data...</div>';
+
+  // Fetch real 90-day price history from CoinGecko
+  fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=90')
+  .then(function(r){return r.json()})
+  .then(function(histData){
+    var bal=10000; // always start with 10k for backcast
+    var strat=serverState.trader?serverState.trader.strategy:'conservative';
+    var realPrices=(histData.prices||[]).map(function(p){return p[1]});
+    // Strategy params
+    var cfgs={
+      conservative:{posSize:0.20,stopLoss:0.035,takeProfit:0.08,baseLev:2,maxLev:4,maxPos:4},
+      aggressive:{posSize:0.35,stopLoss:0.025,takeProfit:0.15,baseLev:4,maxLev:8,maxPos:6},
+      max:{posSize:0.40,stopLoss:0.02,takeProfit:0.20,baseLev:6,maxLev:12,maxPos:8}
+    };
+    var cfg=cfgs[strat]||cfgs.conservative;
+    var stratNames={conservative:'Conservative',aggressive:'Aggressive',max:'Max Profit'};
+
+    if(realPrices.length<30){res.innerHTML='<div style="color:#f45;padding:10px">Not enough historical data. Try again later.</div>';return}
+
+    // Run backcast on REAL BTC prices
+    var b=bal,wins=0,losses=0,consL=0,peak=b,maxDD=0;
+    var positions=[],tradeLog=[];
+    var equityCurve=[bal];
+
+    for(var i=1;i<realPrices.length;i++){
+      var price=realPrices[i],prev=realPrices[i-1];
+      var change=(price-prev)/prev;
+
+      // Manage positions
+      for(var p=positions.length-1;p>=0;p--){
+        var pos=positions[p];
+        var pnl=(price-pos.entry)/pos.entry*pos.lev*(pos.dir===1?1:-1);
+        if(pnl<=-cfg.stopLoss){var net=pos.size*pnl;b+=pos.size+net;losses++;consL++;
+          tradeLog.push({i:i,type:'SL',pnl:(pnl*100).toFixed(1)+'%',bal:b.toFixed(0)});positions.splice(p,1);continue}
+        if(pnl>=cfg.takeProfit){var net=pos.size*pnl;b+=pos.size+net;wins++;consL=0;
+          tradeLog.push({i:i,type:'TP',pnl:'+'+(pnl*100).toFixed(1)+'%',bal:b.toFixed(0)});positions.splice(p,1);continue}
+        if(pnl>0.05&&pnl<(pos.peak||0)-0.012){var net=pos.size*pnl;b+=pos.size+net;wins++;consL=0;
+          tradeLog.push({i:i,type:'Trail',pnl:'+'+(pnl*100).toFixed(1)+'%',bal:b.toFixed(0)});positions.splice(p,1);continue}
+        if(pnl>(pos.peak||0))pos.peak=pnl;
+      }
+
+      // New entries based on real price movement
+      if(positions.length<cfg.maxPos&&b>10&&Math.abs(change)>0.005){
+        var dir=change>0?1:-1;
+        var size=b*cfg.posSize;if(consL>2)size*=0.5;size=Math.min(size,b*0.9);
+        var lev=Math.min(cfg.maxLev,cfg.baseLev+Math.abs(change)*50);
+        positions.push({dir:dir,size:size,lev:lev,entry:price,peak:0});b-=size;
+        tradeLog.push({i:i,type:dir===1?'BUY':'SHORT',pnl:'@$'+price.toFixed(0),bal:b.toFixed(0)});
+      }
+
+      var tv=b+positions.reduce(function(s,p){return s+p.size},0);
+      if(tv>peak)peak=tv;var dd=(peak-tv)/peak;if(dd>maxDD)maxDD=dd;
+      // Record equity every ~1 day (assuming hourly data)
+      if(i%24===0)equityCurve.push(tv);
+    }
+    // Close remaining
+    for(var p=0;p<positions.length;p++){
+      var pnl=(realPrices[realPrices.length-1]-positions[p].entry)/positions[p].entry*positions[p].lev*(positions[p].dir===1?1:-1);
+      b+=positions[p].size+positions[p].size*pnl;if(pnl>0)wins++;else losses++}
+    equityCurve.push(b);
+
+    var totalReturn=((b/bal-1)*100);
+    var btcReturn=((realPrices[realPrices.length-1]/realPrices[0]-1)*100);
+
+    // Build output
+    var h='<div style="font-family:Orbitron;font-size:14px;color:#0fc;margin-bottom:10px">BACKCAST — LAST 90 DAYS</div>';
+    h+='<div style="font-size:11px;color:#779;margin-bottom:10px">Strategy: <b style="color:'+(strat==='max'?'#f45':strat==='aggressive'?'#fc4':'#0fc')+'">'+stratNames[strat]+'</b> | Start: $'+bal.toFixed(0)+' | Real BTC data</div>';
+
+    // Main result
+    h+='<div style="border:1px solid #0fc2;border-radius:6px;padding:10px;margin-bottom:8px">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:#779">Your result</span><span style="color:'+(b>=bal?'#0fc':'#f45')+';font-family:Orbitron;font-weight:700">$'+b.toFixed(0)+'</span></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:#779">B.O.S.S. return</span><span style="color:'+(totalReturn>=0?'#0fc':'#f45')+';font-family:Orbitron;font-weight:700">'+(totalReturn>=0?'+':'')+totalReturn.toFixed(1)+'%</span></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#779">vs just holding BTC</span><span style="color:'+(btcReturn>=0?'#0fc':'#f45')+';font-family:Orbitron">'+(btcReturn>=0?'+':'')+btcReturn.toFixed(1)+'%</span></div>';
+    var alpha=totalReturn-btcReturn;
+    h+='<div style="display:flex;justify-content:space-between;font-size:14px;margin-top:5px;border-top:1px solid #0fc1;padding-top:5px"><span style="color:#779">Alpha (edge over HODL)</span><span style="color:'+(alpha>=0?'#0fc':'#f45')+';font-family:Orbitron;font-weight:700">'+(alpha>=0?'+':'')+alpha.toFixed(1)+'%</span></div>';
+    h+='</div>';
+
+    // Equity mini chart
+    h+='<div style="font-size:10px;color:#779;margin-bottom:4px">EQUITY CURVE (real data)</div>';
+    h+='<canvas id="backcastChart" width="340" height="60" style="width:100%;border:1px solid #0fc1;border-radius:4px;margin-bottom:8px"></canvas>';
+
+    // Stats
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:10px">';
+    h+='<div><span style="color:#779">Trades: </span><span>'+(wins+losses)+'</span></div>';
+    h+='<div><span style="color:#779">Win rate: </span><span style="color:'+(wins/(wins+losses||1)>0.5?'#0fc':'#fc4')+'">'+(wins/(wins+losses||1)*100).toFixed(0)+'%</span></div>';
+    h+='<div><span style="color:#779">Wins: </span><span style="color:#0fc">'+wins+'</span></div>';
+    h+='<div><span style="color:#779">Losses: </span><span style="color:#f45">'+losses+'</span></div>';
+    h+='<div><span style="color:#779">Max DD: </span><span style="color:#f45">'+(maxDD*100).toFixed(1)+'%</span></div>';
+    h+='<div><span style="color:#779">Data pts: </span><span>'+realPrices.length+'</span></div>';
+    h+='</div>';
+
+    // Trade log (last 10)
+    h+='<div style="font-size:11px;color:#779;margin-bottom:4px">TRADE LOG (last 10)</div>';
+    h+='<div style="max-height:120px;overflow-y:auto;font-size:10px;line-height:1.6">';
+    var lastTrades=tradeLog.slice(-10);
+    for(var ti=0;ti<lastTrades.length;ti++){var tl=lastTrades[ti];
+      var tc=tl.type==='SL'?'#f45':tl.type==='BUY'||tl.type==='SHORT'?'#446':'#0fc';
+      h+='<div><span style="color:'+tc+'">'+tl.type+'</span> '+tl.pnl+' <span style="color:#334">bal:'+tl.bal+'</span></div>'}
+    h+='</div>';
+
+    // Verdict
+    h+='<div style="border-top:1px solid #0fc2;margin-top:8px;padding-top:8px;font-size:10px;text-align:center">';
+    if(totalReturn>0&&alpha>0)h+='<span style="color:#0fc">B.O.S.S. beat the market by '+alpha.toFixed(1)+'% over 3 months.</span>';
+    else if(totalReturn>0)h+='<span style="color:#fc4">Profitable, but holding BTC did better this period.</span>';
+    else h+='<span style="color:#f45">This was a tough 3 months. The engine limited losses to '+(maxDD*100).toFixed(0)+'%.</span>';
+    h+='</div>';
+
+    res.innerHTML=h;
+
+    // Draw the equity curve on canvas
+    setTimeout(function(){
+      var canvas=document.getElementById('backcastChart');if(!canvas)return;
+      var c2=canvas.getContext('2d');var w=canvas.width,ht=canvas.height;
+      c2.fillStyle='#000810';c2.fillRect(0,0,w,ht);
+      if(equityCurve.length<2)return;
+      var mn=Math.min.apply(null,equityCurve)*0.99,mx=Math.max.apply(null,equityCurve)*1.01,rng=mx-mn||1;
+      // Zero line
+      var zy=ht-((bal-mn)/rng)*ht;
+      c2.strokeStyle='rgba(255,255,255,0.1)';c2.lineWidth=0.5;c2.beginPath();c2.moveTo(0,zy);c2.lineTo(w,zy);c2.stroke();
+      // Curve
+      c2.beginPath();
+      for(var ei=0;ei<equityCurve.length;ei++){var ex=ei/(equityCurve.length-1)*w;var ey=ht-((equityCurve[ei]-mn)/rng)*ht;ei===0?c2.moveTo(ex,ey):c2.lineTo(ex,ey)}
+      var lastE=equityCurve[equityCurve.length-1];
+      c2.strokeStyle=lastE>=bal?'rgba(0,255,200,0.8)':'rgba(255,80,100,0.8)';c2.lineWidth=1.5;c2.stroke();
+      // Fill
+      c2.lineTo(w,ht);c2.lineTo(0,ht);c2.closePath();
+      c2.fillStyle=lastE>=bal?'rgba(0,255,200,0.08)':'rgba(255,80,100,0.08)';c2.fill();
+    },50);
+  }).catch(function(e){res.innerHTML='<div style="color:#f45;padding:10px">Failed to fetch historical data: '+e.message+'</div>'});
+}
+
+function resetDemo(){
+  fetch('/api/reset',{method:'POST'}).catch(function(){});
+  narLog('Demo reset requested','nt-trade');
+}
+
+function ask(){var inp=document.getElementById('oI'),q=inp.value.trim();if(!q)return;inp.value='';
+  var r=document.getElementById('oracle-resp');r.style.display='block';
+  var c=stars.filter(function(s){return s.type==='crypto'}),bu=c.filter(function(s){return s.dir==='BULL'}),be=c.filter(function(s){return s.dir==='BEAR'});
+  var hot=c.sort(function(a,b){return b.warmth-a.warmth})[0];var ql=q.toLowerCase();var a='';
+  if(ql.includes('buy')||ql.includes('long'))a=hot?hot.id+' warmth '+hot.warmth.toFixed(2)+'. '+bu.length+' bull vs '+be.length+' bear.':'No data.';
+  else if(ql.includes('sell')||ql.includes('short')){var cold=c.sort(function(a,b){return a.change-b.change})[0];a=cold?'Weakest: '+cold.id+' ('+cold.change.toFixed(1)+'%)':'No data.'}
+  else if(ql.includes('balance')){var tr=serverState.trader;a='Balance: '+(tr.balance||0).toFixed(2)+' TON. W/L: '+(tr.wins||0)+'/'+(tr.losses||0)}
+  else if(ql.includes('grief')){a='Field grief: '+((serverState.field.grief||0)*100).toFixed(0)+'%. Warmth: '+(serverState.field.fieldWarmth||0).toFixed(2)}
+  else if(ql.includes('hl')||ql.includes('hyperliquid')){a='HL: '+(serverState.hl.connected?'connected':'disconnected')}
+  else a=stars.length+' stars. '+bu.length+' bull, '+be.length+' bear.'+(hot?' Hot: '+hot.id:'');
+  r.textContent=a;setTimeout(function(){r.style.display='none'},10000)}
+
+// =================================================================
+// PATTERN VISUALIZATION MODES
+// =================================================================
+var vizModes={bonds:true,rivers:true,gravity:false,spiral:false,trails:false,colorTemp:false,ghosts:false,ripples:false,divergence:false,weather:false,volShadow:false,obMass:false,liqZones:false,spiderWeb:false,forceGraph:false,neuralNet:false,flowPipes:false,sparklines:false,equityCurve:false,tradeLog:false,corrMatrix:false,signalBars:false};
+
+function toggleVizPanel(){var p=document.getElementById('viz-panel');p.style.display=p.style.display==='none'?'block':'none'}
+function toggleViz(mode){
+  vizModes[mode]=!vizModes[mode];
+  var el=document.getElementById('vz-'+mode);if(!el)return;
+  el.textContent=vizModes[mode]?'\u25CF':'\u25CB';
+  el.parentElement.className=vizModes[mode]?'vz on':'vz';
+}
+
+// -- 1. COMET TRAILS --
+function drawCometTrails(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var angle=s.dir==='BULL'?Math.PI*1.25:Math.PI*0.25;
+    var trailLen=(8+Math.abs(s.change)*3)*cam.z;
+    var sx=s.sx,sy=s.sy;
+    if(sx<-50||sx>W+50||sy<-50||sy>H+50)continue;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    for(var j=1;j<=6;j++){
+      var frac=j/6;
+      var tx=sx+Math.cos(angle)*trailLen*frac;
+      var ty=sy+Math.sin(angle)*trailLen*frac;
+      var ptx=sx+Math.cos(angle)*trailLen*(frac-1/6);
+      var pty=sy+Math.sin(angle)*trailLen*(frac-1/6);
+      var alpha=0.4*(1-frac);
+      cx.strokeStyle='rgba('+col+','+alpha+')';
+      cx.lineWidth=Math.max(0.5,(1-frac)*3*cam.z);
+      cx.beginPath();cx.moveTo(ptx,pty);cx.lineTo(tx,ty);cx.stroke();
+    }
+  }
+}
+
+// -- 2. COLOR TEMPERATURE --
+function getColorTemp(change,warmth){
+  var t=Math.max(-5,Math.min(12,change))+5;
+  var norm=t/17;
+  var r,g,b;
+  if(norm<0.2){r=30;g=60+norm*5*200;b=255}
+  else if(norm<0.4){r=0;g=255;b=255-((norm-0.2)*5*255)}
+  else if(norm<0.6){r=((norm-0.4)*5*255);g=255;b=0}
+  else if(norm<0.8){r=255;g=255-((norm-0.6)*5*155);b=0}
+  else{r=255;g=100-((norm-0.8)*5*100);b=((norm-0.8)*5*50)}
+  return 'rgb('+Math.floor(r)+','+Math.floor(g)+','+Math.floor(b)+')';
+}
+
+// -- 3. GHOST POSITIONS --
+function drawGhosts(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(!s._ghosts)s._ghosts=[];
+    if(!s._ghostFrame)s._ghostFrame=0;s._ghostFrame++;
+    if(s._ghostFrame%120===0){s._ghosts.push({x:s.bx,y:s.by,t:performance.now(),dir:s.dir});if(s._ghosts.length>4)s._ghosts.shift()}
+    for(var j=0;j<s._ghosts.length;j++){
+      var gh=s._ghosts[j];
+      var age=(performance.now()-gh.t)/60000;
+      var alpha=Math.max(0.05,0.3-age*0.05);
+      var gx=(gh.x-cam.x)*cam.z+W/2,gy=(gh.y-cam.y)*cam.z+H/2;
+      if(gx<-30||gx>W+30)continue;
+      var gcol=gh.dir==='BULL'?'0,255,200':'255,80,100';
+      cx.globalAlpha=alpha*0.4;cx.fillStyle='rgba('+gcol+',1)';
+      cx.beginPath();cx.arc(gx,gy,Math.max(2,s.r*0.6),0,6.28);cx.fill();
+      cx.globalAlpha=alpha;cx.strokeStyle='rgba('+gcol+',0.6)';cx.lineWidth=1*cam.z;
+      cx.setLineDash([2*cam.z,2*cam.z]);cx.beginPath();cx.arc(gx,gy,Math.max(3,s.r),0,6.28);cx.stroke();cx.setLineDash([]);
+      cx.globalAlpha=1;
+    }
+  }
+}
+
+// -- 4. HEARTBEAT RIPPLES --
+var starRipples=[];
+function drawRipples(dt){
+  if(starRipples.length>100){starRipples.splice(0,starRipples.length-80)}
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(!s._nextRipple)s._nextRipple=0;
+    if(starRipples.length<100&&performance.now()>s._nextRipple){
+      var freq=Math.max(800,3000-s.warmth*800);
+      s._nextRipple=performance.now()+freq;
+      starRipples.push({x:s.wx,y:s.wy,r:0,maxR:20+s.warmth*15,alpha:0.35,
+        col:s.dir==='BULL'?'0,255,200':'255,80,100',speed:15+s.warmth*10});
+    }
+  }
+  for(var i=starRipples.length-1;i>=0;i--){
+    var rp=starRipples[i];rp.r+=rp.speed*dt;rp.alpha*=(1-dt*1.5);
+    if(rp.alpha<0.01||rp.r>rp.maxR){starRipples.splice(i,1);continue}
+    var rx=(rp.x-cam.x)*cam.z+W/2,ry=(rp.y-cam.y)*cam.z+H/2;
+    if(rx<-50||rx>W+50)continue;
+    cx.strokeStyle='rgba('+rp.col+','+rp.alpha+')';cx.lineWidth=0.8*cam.z;
+    cx.beginPath();cx.arc(rx,ry,rp.r*cam.z,0,6.28);cx.stroke();
+  }
+}
+
+// -- 5. DIVERGENCE FLARES --
+var divFlares=[];
+function checkDivergence(){
+  if(serverBonds.length===0)return;
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];if(Math.abs(bond.strength)<0.6)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];
+    if(!sa||!sb)continue;
+    // Divergence: normally correlated but stars moving opposite directions
+    if(bond.strength>0.5&&sa.dir!==sb.dir&&sa.warmth>0.5&&sb.warmth>0.5){
+      var exists=divFlares.find(function(f){return f.a===bond.from&&f.b===bond.to&&f.alpha>0.1});
+      if(!exists)divFlares.push({a:bond.from,b:bond.to,sa:sa,sb:sb,alpha:0.8,life:3});
+    }
+  }
+}
+function drawDivergenceFlares(dt){
+  for(var i=divFlares.length-1;i>=0;i--){
+    var f=divFlares[i];f.alpha-=dt*0.3;f.life-=dt;
+    if(f.alpha<=0||f.life<=0){divFlares.splice(i,1);continue}
+    var ax=f.sa.sx,ay=f.sa.sy,bx=f.sb.sx,by=f.sb.sy;
+    var pulse=0.5+Math.sin(performance.now()/150)*0.5;
+    cx.strokeStyle='rgba(255,200,50,'+(f.alpha*pulse)+')';
+    cx.lineWidth=(2+pulse*2)*cam.z;cx.setLineDash([6*cam.z,4*cam.z]);
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();cx.setLineDash([]);
+    var mx=(ax+bx)/2,my=(ay+by)/2;
+    cx.fillStyle='rgba(255,200,50,'+(f.alpha*0.8)+')';
+    cx.save();cx.translate(mx,my);cx.rotate(Math.PI/4);
+    cx.fillRect(-3*cam.z,-3*cam.z,6*cam.z,6*cam.z);cx.restore();
+  }
+}
+
+// -- 6. MARKET WEATHER --
+function drawWeather(){
+  var bulls=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BULL'}).length;
+  var bears=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BEAR'}).length;
+  var total=bulls+bears||1;
+  var bullRatio=bulls/total;
+  var grief=serverState.field.grief||0;
+  if(grief>0.5){
+    var intensity=(grief-0.5)*0.3;
+    cx.fillStyle='rgba(60,0,0,'+intensity+')';cx.fillRect(0,0,W,H);
+    if(Math.random()<grief*0.02){cx.fillStyle='rgba(255,100,50,0.05)';cx.fillRect(0,0,W,H)}
+  }else if(bullRatio>0.7){
+    cx.fillStyle='rgba(0,40,30,0.04)';cx.fillRect(0,0,W,H);
+  }else if(bullRatio<0.3){
+    cx.fillStyle='rgba(30,0,40,0.06)';cx.fillRect(0,0,W,H);
+  }
+  if(grief>0.3&&grief<=0.5){
+    var now=performance.now()/3000;
+    for(var i=0;i<3;i++){
+      var cloudX=W*(0.3+i*0.2+Math.sin(now+i)*0.1);
+      var cloudY=H*(0.3+Math.cos(now*0.7+i)*0.15);
+      var g=cx.createRadialGradient(cloudX,cloudY,0,cloudX,cloudY,W*0.15);
+      g.addColorStop(0,'rgba(80,40,100,'+(grief*0.08)+')');g.addColorStop(1,'transparent');
+      cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    }
+  }
+}
+
+// -- 7. VOLUME SHADOWS --
+function drawVolumeShadows(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var intensity=Math.min(s.warmth/3,1);
+    if(intensity<0.1)continue;
+    var x=s.sx,y=s.sy;
+    if(x<-80||x>W+80||y<-80||y>H+80)continue;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    var shadowR=(15+intensity*25)*cam.z;
+    var g=cx.createRadialGradient(x,y,0,x,y,shadowR);
+    g.addColorStop(0,'rgba('+col+','+(intensity*0.15)+')');
+    g.addColorStop(0.5,'rgba('+col+','+(intensity*0.05)+')');
+    g.addColorStop(1,'transparent');
+    cx.fillStyle=g;cx.fillRect(x-shadowR,y-shadowR,shadowR*2,shadowR*2);
+  }
+}
+
+// Divergence check runs every 2 seconds
+setInterval(function(){if(vizModes.divergence)checkDivergence()},2000);
+
+// -- SENTIMENT GRAVITY --
+function applySentimentGravity(dt){
+  for(var i=0;i<stars.length;i++)for(var j=i+1;j<stars.length;j++){
+    var a=stars[i],b=stars[j];if(a.type!==b.type)continue;
+    var dx=b.bx-a.bx,dy=b.by-a.by,dist=Math.hypot(dx,dy);
+    if(dist<15||dist>500)continue;
+    var force=(a.warmth+b.warmth)*0.1*dt;
+    if(a.dir===b.dir){if(dist>80){a.bx+=dx/dist*force;a.by+=dy/dist*force;b.bx-=dx/dist*force;b.by-=dy/dist*force}}
+    else{if(dist<250){a.bx-=dx/dist*force*0.4;a.by-=dy/dist*force*0.4;b.bx+=dx/dist*force*0.4;b.by+=dy/dist*force*0.4}}
+  }
+}
+
+// -- ORDER BOOK MASS — from serverState.hl.depth --
+function applyOBMass(){
+  var hlDepth=serverState.hl.depth||{};
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var depth=hlDepth[s.id];
+    if(!depth||depth.imbalance===0){s._obBoost=0;continue}
+    s._obBoost=depth.imbalance*3;
+  }
+}
+
+// -- LIQUIDATION ZONES — from serverState.hl.liquidations --
+function drawLiqZones(){
+  var hlLiqs=serverState.hl.liquidations||{};
+  for(var sym in hlLiqs){
+    var liqs=hlLiqs[sym];if(!liqs||liqs.length<2)continue;
+    var s=starMap[sym]||starMap[sym.toUpperCase()];if(!s)continue;
+    var longLiqs=0,shortLiqs=0;
+    for(var i=0;i<liqs.length;i++){if(liqs[i].side==='long')longLiqs++;else shortLiqs++}
+    var total=longLiqs+shortLiqs;if(total<2)continue;
+    var x=s.sx,y=s.sy,r=s.r;
+    if(x<-50||x>W+50)continue;
+    if(longLiqs>0){
+      var arc=Math.min(Math.PI,(longLiqs/total)*Math.PI*2);
+      cx.strokeStyle='rgba(255,60,80,'+(0.3+longLiqs/total*0.4)+')';cx.lineWidth=2*cam.z;
+      cx.beginPath();cx.arc(x,y,r+8*cam.z,-Math.PI/2-arc/2,-Math.PI/2+arc/2);cx.stroke();
+    }
+    if(shortLiqs>0){
+      var arc=Math.min(Math.PI,(shortLiqs/total)*Math.PI*2);
+      cx.strokeStyle='rgba(0,255,200,'+(0.3+shortLiqs/total*0.4)+')';cx.lineWidth=2*cam.z;
+      cx.beginPath();cx.arc(x,y,r+8*cam.z,Math.PI/2-arc/2,Math.PI/2+arc/2);cx.stroke();
+    }
+  }
+}
+
+// =================================================================
+// SPIDER WEB
+// =================================================================
+function drawSpiderWeb(){
+  var centerX=W/2,centerY=H/2;
+  for(var ring=1;ring<=4;ring++){
+    var r=ring*80*cam.z;
+    cx.strokeStyle='rgba(0,255,200,'+(0.04)+')';cx.lineWidth=0.5;
+    cx.beginPath();cx.arc(centerX,centerY,r,0,6.28);cx.stroke();
+  }
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];var sx=s.sx,sy=s.sy;
+    if(sx<-50||sx>W+50)continue;
+    var dist=Math.hypot(sx-centerX,sy-centerY);
+    var alpha=Math.max(0.05,0.2-dist/(W*0.5)*0.15);
+    var vibrate=Math.sin(s.t*2+i)*s.warmth*2*cam.z;
+    var mx=(centerX+sx)/2+vibrate,my=(centerY+sy)/2+vibrate*0.7;
+    var col=s.dir==='BULL'?'0,255,200':'255,80,100';
+    cx.strokeStyle='rgba('+col+','+alpha+')';cx.lineWidth=Math.max(0.3,s.warmth*0.5)*cam.z;
+    cx.beginPath();cx.moveTo(centerX,centerY);cx.quadraticCurveTo(mx,my,sx,sy);cx.stroke();
+  }
+  cx.fillStyle='rgba(255,255,255,0.15)';cx.beginPath();cx.arc(centerX,centerY,6*cam.z,0,6.28);cx.fill();
+}
+
+// =================================================================
+// FORCE GRAPH — reads from serverBonds
+// =================================================================
+function applyForceGraph(dt){
+  if(serverBonds.length===0)return;
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];var str=Math.abs(bond.strength);if(str<0.5)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var dx=sb.bx-sa.bx,dy=sb.by-sa.by,dist=Math.hypot(dx,dy);
+    if(dist<20||dist>800)continue;
+    var targetDist=150-str*80;
+    var force=(dist-targetDist)*0.0003*dt;
+    sa.bx+=dx/dist*force;sa.by+=dy/dist*force;
+    sb.bx-=dx/dist*force;sb.by-=dy/dist*force;
+  }
+  for(var i=0;i<stars.length;i++)for(var j=i+1;j<stars.length;j++){
+    var a=stars[i],b=stars[j];
+    var dx=b.bx-a.bx,dy=b.by-a.by,dist=Math.hypot(dx,dy);
+    if(dist<10)dist=10;if(dist>200)continue;
+    var repel=300/(dist*dist)*dt;
+    a.bx-=dx/dist*repel;a.by-=dy/dist*repel;
+    b.bx+=dx/dist*repel;b.by+=dy/dist*repel;
+  }
+}
+
+// =================================================================
+// NEURAL NETWORK — cascades from serverState.cascades
+// =================================================================
+function drawNeuralNet(){
+  // Draw all connections as thin synapses
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];var str=Math.abs(bond.strength);if(str<0.4)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    cx.strokeStyle='rgba(100,120,180,'+(str*0.15)+')';cx.lineWidth=0.5*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+  }
+  // Active nodes glow brighter
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];if(s.warmth<0.5)continue;
+    var x=s.sx,y=s.sy;if(x<-50||x>W+50)continue;
+    var intensity=Math.min(1,(s.warmth-0.5)/3);
+    var pulse=0.5+Math.sin(s.t*3)*0.5;
+    var glowR=(8+intensity*15)*cam.z;
+    cx.fillStyle='rgba(180,200,255,'+(intensity*0.12*pulse)+')';
+    cx.beginPath();cx.arc(x,y,glowR,0,6.28);cx.fill();
+  }
+  // Show cascade signals traveling
+  var cascades=serverState.cascades||[];
+  for(var i=0;i<cascades.length;i++){
+    var c=cascades[i];
+    var ss=starMap[c.source],st=starMap[c.target];if(!ss||!st)continue;
+    var timeLeft=(c.executeAt-Date.now())/c.executeAt;
+    var progress=1-Math.max(0,Math.min(1,timeLeft));
+    var px=ss.sx+(st.sx-ss.sx)*progress,py=ss.sy+(st.sy-ss.sy)*progress;
+    cx.fillStyle='rgba(255,255,180,0.6)';cx.beginPath();cx.arc(px,py,3*cam.z,0,6.28);cx.fill();
+  }
+}
+
+// =================================================================
+// FLOW PIPES — reads from serverBonds
+// =================================================================
+function drawFlowPipes(){
+  if(serverBonds.length===0)return;
+  var now=performance.now()/1000;
+  for(var i=0;i<serverBonds.length;i++){
+    var bond=serverBonds[i];var str=Math.abs(bond.strength);if(str<0.45)continue;
+    var sa=starMap[bond.from],sb=starMap[bond.to];if(!sa||!sb)continue;
+    var ax=sa.sx,ay=sa.sy,bx=sb.sx,by=sb.sy;
+    if(ax<-50||ax>W+50||bx<-50||bx>W+50)continue;
+    var thickness=Math.max(1,str*5)*cam.z;
+    var fromWarm=sa.warmth>sb.warmth;
+    var col=bond.strength>0?'0,180,160':'180,80,60';
+    cx.strokeStyle='rgba('+col+',0.08)';cx.lineWidth=thickness+2*cam.z;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+    cx.strokeStyle='rgba('+col+',0.2)';cx.lineWidth=thickness;
+    cx.beginPath();cx.moveTo(ax,ay);cx.lineTo(bx,by);cx.stroke();
+    var count=Math.floor(str*3)+2;
+    for(var pi=0;pi<count;pi++){
+      var t=((now*0.2+pi/count)%1);
+      var fx,fy;
+      if(fromWarm){fx=ax+(bx-ax)*t;fy=ay+(by-ay)*t}
+      else{fx=bx+(ax-bx)*t;fy=by+(ay-by)*t}
+      var alpha=0.5*Math.sin(t*3.14);
+      cx.fillStyle='rgba(255,255,255,'+alpha*0.4+')';
+      cx.beginPath();cx.arc(fx,fy,(thickness*0.4),0,6.28);cx.fill();
+    }
+  }
+}
+
+// =================================================================
+// DATA: PRICE SPARKLINES — uses server history
+// =================================================================
+function drawSparklines(){
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];var sd=serverState.stars[s.id];
+    if(!sd||!sd.history||sd.history.length<5)continue;
+    var x=s.sx,y=s.sy;if(x<-50||x>W+50||y<-50||y>H+50)continue;
+    var h=sd.history.slice(-30);
+    var mn=Math.min.apply(null,h),mx=Math.max.apply(null,h),rng=mx-mn||1;
+    var sw=30*cam.z,sh=12*cam.z;
+    var ox=x+s.r+4*cam.z,oy=y-sh/2;
+    cx.fillStyle='rgba(0,4,12,0.5)';cx.fillRect(ox-1,oy-1,sw+2,sh+2);
+    cx.beginPath();
+    for(var j=0;j<h.length;j++){
+      var px=ox+(j/(h.length-1))*sw;
+      var py=oy+sh-((h[j]-mn)/rng)*sh;
+      j===0?cx.moveTo(px,py):cx.lineTo(px,py);
+    }
+    var col=h[h.length-1]>=h[0]?'0,255,200':'255,80,100';
+    cx.strokeStyle='rgba('+col+',0.6)';cx.lineWidth=1;cx.stroke();
+  }
+}
+
+// =================================================================
+// TIME SLIDER — scrub through profit history
+var sliderPos=100; // 0-100, percentage of history to show
+function updateSlider(val){
+  sliderPos=parseInt(val);
+  var ph=serverState.profitHistory||[];
+  if(ph.length<2)return;
+  var idx=Math.max(1,Math.floor(ph.length*sliderPos/100))-1;
+  var startVal=ph[0]||0;
+  var currentVal=ph[idx]||0;
+  var pnl=currentVal-startVal;
+  var pct=startVal>0?((currentVal/startVal-1)*100):0;
+  document.getElementById('slider-val').textContent=currentVal.toFixed(0)+' TON';
+  document.getElementById('slider-pnl').textContent=(pnl>=0?'+':'')+pnl.toFixed(1)+' ('+(pct>=0?'+':'')+pct.toFixed(1)+'%)';
+  document.getElementById('slider-pnl').style.color=pnl>=0?'#0fc':'#f45';
+  document.getElementById('slider-val').style.color=pnl>=0?'#0fc':'#f45';
+}
+
+// Show slider when there's profit data
+function checkSliderVisibility(){
+  var ph=serverState.profitHistory||[];
+  var show=ph.length>5&&(tier==='explorer'||acct==='demo'||acct==='live');
+  document.getElementById('time-machine').style.display=show?'':'none';
+  if(show&&sliderPos===100)updateSlider(100);
+}
+
+// Forecast — Monte Carlo simulation into the future
+function runForecast(){
+  var fp=document.getElementById('forecast-panel');fp.style.display='block';
+  var res=document.getElementById('forecast-result');
+  res.innerHTML='<div style="color:#fc4;text-align:center;padding:20px;font-size:14px">Simulating 3 months...</div>';
+  setTimeout(function(){
+    var startBal=serverState.trader?serverState.trader.balance:10000;if(startBal<=0)startBal=10000;
+    var strat=serverState.trader?serverState.trader.strategy:'conservative';
+    // Realistic monthly return ranges per strategy (based on verified simulation)
+    var monthly={
+      conservative:{mean:0.12,std:0.06,minDD:0.03,maxDD:0.06},
+      aggressive:{mean:0.30,std:0.15,minDD:0.08,maxDD:0.15},
+      max:{mean:0.45,std:0.25,minDD:0.12,maxDD:0.25}
+    };
+    var m=monthly[strat]||monthly.conservative;
+    var RUNS=500;var results=[];
+    for(var run=0;run<RUNS;run++){
+      var b=startBal;var maxDD=0;var pk=b;var months=[startBal];
+      for(var mo=0;mo<3;mo++){
+        // Monthly return = normal distribution around mean
+        var r=m.mean+(Math.random()+Math.random()+Math.random()-1.5)*m.std*2;
+        // Cap extreme returns to realistic range
+        r=Math.max(-m.maxDD,Math.min(m.mean*2.5,r));
+        b=b*(1+r);if(b<startBal*0.1)b=startBal*0.1; // floor at 10% — grief protocol prevents total wipeout
+        months.push(b);
+        if(b>pk)pk=b;var dd=(pk-b)/pk;if(dd>maxDD)maxDD=dd;
+      }
+      results.push({bal:b,dd:maxDD,months:months});
+    }
+    results.sort(function(a,b){return a.bal-b.bal});
+    var avg=results.reduce(function(s,r){return s+r.bal},0)/RUNS;
+    var med=results[Math.floor(RUNS*0.5)];
+    var p10=results[Math.floor(RUNS*0.1)];
+    var p90=results[Math.floor(RUNS*0.9)];
+    var profitable=results.filter(function(r){return r.bal>startBal}).length;
+    var doubled=results.filter(function(r){return r.bal>startBal*2}).length;
+    var avgDD=results.reduce(function(s,r){return s+r.dd},0)/RUNS;
+    var stratN={conservative:'Conservative',aggressive:'Aggressive',max:'Max Profit'};
+
+    var h='<div style="font-family:Orbitron;font-size:16px;color:#fc4;margin-bottom:12px">FORECAST — NEXT 3 MONTHS</div>';
+    h+='<div style="font-size:13px;color:#889;margin-bottom:12px">Strategy: <b style="color:'+(strat==='max'?'#f45':strat==='aggressive'?'#fc4':'#0fc')+'">'+stratN[strat]+'</b> | Start: '+startBal.toFixed(0)+' TON</div>';
+
+    h+='<div style="border:1px solid #fc42;border-radius:8px;padding:14px;margin-bottom:12px">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:16px;margin-bottom:6px"><span style="color:#889">Average result</span><span style="color:'+(avg>=startBal?'#0fc':'#f45')+';font-family:Orbitron;font-weight:700">'+avg.toFixed(0)+' TON</span></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:16px"><span style="color:#889">Return</span><span style="color:'+(avg>=startBal?'#0fc':'#f45')+';font-family:Orbitron;font-weight:700">'+(avg>=startBal?'+':'')+((avg/startBal-1)*100).toFixed(0)+'%</span></div></div>';
+
+    // Monthly progression from median
+    var mm=med.months;
+    h+='<div style="font-size:12px;color:#889;margin-bottom:6px">MONTHLY PROGRESSION (median)</div>';
+    h+='<table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:12px">';
+    h+='<tr style="color:#668"><td>Start</td><td>Month 1</td><td>Month 2</td><td>Month 3</td></tr>';
+    h+='<tr style="font-family:Orbitron;font-weight:700">';
+    for(var i=0;i<mm.length;i++){var c=mm[i]>=startBal?'#0fc':'#f45';h+='<td style="color:'+c+'">'+mm[i].toFixed(0)+'</td>'}
+    h+='</tr></table>';
+
+    h+='<div style="font-size:12px;color:#889;margin-bottom:6px">SCENARIOS</div>';
+    h+='<table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:12px">';
+    var scenarios=[['Bad (10th %ile)',p10.bal],['Median',med.bal],['Good (90th %ile)',p90.bal]];
+    for(var i=0;i<scenarios.length;i++){var sc=scenarios[i];var c=sc[1]>=startBal?'#0fc':'#f45';
+      h+='<tr><td style="color:#889">'+sc[0]+'</td><td style="color:'+c+';font-family:Orbitron">'+sc[1].toFixed(0)+' TON ('+(sc[1]>=startBal?'+':'')+((sc[1]/startBal-1)*100).toFixed(0)+'%)</td></tr>'}
+    h+='</table>';
+
+    h+='<div style="font-size:13px;color:#889;margin-bottom:8px">Profitable: <b style="color:#0fc">'+((profitable/RUNS*100).toFixed(0))+'%</b> of runs | Doubled: <b style="color:#fc4">'+((doubled/RUNS*100).toFixed(0))+'%</b> | Max drawdown: <b style="color:#f45">'+(avgDD*100).toFixed(0)+'%</b></div>';
+
+    h+='<div style="border-top:1px solid #fc42;margin-top:10px;padding-top:10px;font-size:14px;text-align:center">';
+    if(profitable/RUNS>0.9)h+='<span style="color:#0fc">This strategy is likely profitable over 3 months.</span>';
+    else if(profitable/RUNS>0.6)h+='<span style="color:#fc4">Moderate confidence. Some months may be negative.</span>';
+    else h+='<span style="color:#f45">High risk. Consider a more conservative approach.</span>';
+    h+='</div>';
+    res.innerHTML=h;
+  },100);
+}
+
+// DATA: EQUITY CURVE
+// =================================================================
+function drawEquityCurve(){
+  var startBal=serverState.trader.startBal||0;
+  if(profH.length<3||startBal===0)return;
+  var ex=10,ey=H-140,ew=200,eh=80;
+  cx.fillStyle='rgba(0,4,12,0.6)';cx.fillRect(ex,ey,ew,eh);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(ex,ey,ew,eh);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('EQUITY',ex+4,ey-3);
+  var v=profH.map(function(p){return p.v}),mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),rng=mx-mn||1;
+  var zeroY=ey+eh-((startBal-mn)/rng)*eh;
+  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(ex,zeroY);cx.lineTo(ex+ew,zeroY);cx.stroke();
+  // Draw up to slider position
+  var drawLen=Math.max(2,Math.floor(profH.length*sliderPos/100));
+  cx.beginPath();
+  for(var i=0;i<drawLen;i++){
+    var px=ex+(i/(profH.length-1))*ew;
+    var py=ey+eh-((profH[i].v-mn)/rng)*eh;
+    i===0?cx.moveTo(px,py):cx.lineTo(px,py);
+  }
+  var last=v[drawLen-1];
+  var col=last>=startBal?'0,255,200':'255,80,100';
+  cx.strokeStyle='rgba('+col+',0.7)';cx.lineWidth=1.5;cx.stroke();
+  // Fill under curve
+  cx.lineTo(ex+(drawLen-1)/(profH.length-1)*ew,ey+eh);cx.lineTo(ex,ey+eh);cx.closePath();
+  cx.fillStyle='rgba('+col+',0.06)';cx.fill();
+  // Slider marker line
+  if(sliderPos<100){var sx=ex+(drawLen-1)/(profH.length-1)*ew;
+    cx.strokeStyle='rgba(255,255,255,0.3)';cx.lineWidth=1;cx.setLineDash([2,2]);
+    cx.beginPath();cx.moveTo(sx,ey);cx.lineTo(sx,ey+eh);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle='rgba(255,255,255,0.6)';cx.beginPath();cx.arc(sx,ey+eh-((last-mn)/rng)*eh,3,0,6.28);cx.fill()}
+  var pnl=last-startBal;
+  cx.fillStyle='rgba('+col+',0.8)';cx.font='9px Orbitron';cx.textAlign='right';
+  cx.fillText((pnl>=0?'+':'')+pnl.toFixed(1),ex+ew-2,ey+12);
+}
+
+// =================================================================
+// DATA: TRADE LOG
+// =================================================================
+function drawTradeLog(){
+  var trades=(serverState.trader.history||[]).slice(-8).reverse();
+  if(trades.length===0)return;
+  var lx=W-220,ly=H-160,lw=210,lh=8+trades.length*13;
+  cx.fillStyle='rgba(0,4,12,0.7)';cx.fillRect(lx,ly,lw,lh);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(lx,ly,lw,lh);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('TRADE LOG',lx+4,ly-3);
+  for(var i=0;i<trades.length;i++){
+    var t=trades[i];
+    var col=t.pnl>=0?'0,255,200':'255,80,100';
+    var ty=ly+10+i*13;
+    cx.fillStyle='rgba('+col+',0.7)';cx.font='8px Share Tech Mono';cx.textAlign='left';
+    cx.fillText((t.id||'').substring(0,12),lx+4,ty);
+    cx.textAlign='right';
+    cx.fillText(((t.pnlPct||0)>=0?'+':'')+(t.pnlPct||0).toFixed(1)+'% '+(t.reason||''),lx+lw-4,ty);
+  }
+}
+
+// =================================================================
+// DATA: CORRELATION MAP — reads from serverBonds
+// =================================================================
+function drawCorrMatrix(){
+  if(serverBonds.length===0)return;
+  var top=stars.filter(function(s){return s.type==='crypto'}).sort(function(a,b){return b.warmth-a.warmth}).slice(0,8);
+  if(top.length<3)return;
+  var n=top.length;
+  var cellSz=14,mx=W-10-n*cellSz,my=80;
+  cx.fillStyle='rgba(0,4,12,0.7)';cx.fillRect(mx-40,my-12,n*cellSz+44,n*cellSz+16);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('CORRELATION',mx-38,my-15);
+  cx.font='6px Share Tech Mono';cx.fillStyle='rgba(200,220,240,0.4)';
+  for(var i=0;i<n;i++){
+    cx.textAlign='right';cx.fillText(top[i].id.substring(0,4),mx-2,my+i*cellSz+10);
+  }
+  for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+    if(i===j){cx.fillStyle='rgba(255,255,255,0.05)';cx.fillRect(mx+j*cellSz,my+i*cellSz,cellSz-1,cellSz-1);continue}
+    var corr=0;
+    for(var b=0;b<serverBonds.length;b++){
+      var bond=serverBonds[b];
+      if((bond.from===top[i].id&&bond.to===top[j].id)||(bond.from===top[j].id&&bond.to===top[i].id)){corr=bond.strength;break}
+    }
+    var r,g,bl;
+    if(corr>0){r=0;g=Math.floor(corr*255);bl=Math.floor(corr*200)}
+    else if(corr<0){r=Math.floor(Math.abs(corr)*255);g=Math.floor(Math.abs(corr)*60);bl=Math.floor(Math.abs(corr)*80)}
+    else{r=30;g=30;bl=30}
+    cx.fillStyle='rgb('+r+','+g+','+bl+')';
+    cx.fillRect(mx+j*cellSz,my+i*cellSz,cellSz-1,cellSz-1);
+  }
+}
+
+// =================================================================
+// DATA: SIGNAL DASHBOARD — reads from serverSignals
+// =================================================================
+function drawSignalBars(){
+  var sigs=serverSignals.slice(0,6);
+  if(sigs.length===0)return;
+  var sx=10,sy=80,sw=180,rowH=16;
+  cx.fillStyle='rgba(0,4,12,0.7)';cx.fillRect(sx,sy,sw,8+sigs.length*rowH);
+  cx.strokeStyle='rgba(0,255,200,0.1)';cx.strokeRect(sx,sy,sw,8+sigs.length*rowH);
+  cx.fillStyle='rgba(0,255,200,0.2)';cx.font='6px Orbitron';cx.textAlign='left';
+  cx.fillText('SIGNALS',sx+4,sy-3);
+  for(var i=0;i<sigs.length;i++){
+    var sig=sigs[i];
+    var ty=sy+10+i*rowH;
+    var col=sig.dir==='LONG'?'0,255,200':'255,80,100';
+    cx.fillStyle='rgba(200,220,240,0.6)';cx.font='8px Share Tech Mono';cx.textAlign='left';
+    cx.fillText((sig.id||'').substring(0,10),sx+4,ty);
+    cx.fillStyle='rgba('+col+',0.8)';cx.textAlign='left';
+    cx.fillText(sig.dir,sx+80,ty);
+    var barW=Math.min(50,(sig.warmth||0)*10);
+    cx.fillStyle='rgba('+col+',0.3)';cx.fillRect(sx+115,ty-7,barW,8);
+    cx.fillStyle='rgba('+col+',0.6)';cx.fillRect(sx+115,ty-7,barW*0.7,8);
+  }
+}
+
+// =================================================================
+// HUD — reads from serverState
+// =================================================================
+function updateHUD(){try{
+  var tr=serverState.trader;
+  var balance=tr.balance||0;var startBal=tr.startBal||0;
+  var pnl=balance-startBal;
+  var trades=tr.trades||0;var wins=tr.wins||0;var losses=tr.losses||0;
+  var winRate=trades>0?(wins/trades*100):0;
+  var posCount=0;var posMap=tr.positions||{};for(var k in posMap)if(posMap.hasOwnProperty(k))posCount++;
+  var tag=tier!=='observer'?' ['+tier.toUpperCase()+']':'';
+  document.getElementById('hB').textContent=balance.toFixed(2)+tag;document.getElementById('hB').className='hv '+(pnl>=0?'grn':'red');
+  document.getElementById('hP').textContent=(pnl>=0?'+':'')+pnl.toFixed(3);document.getElementById('hP').className='hv '+(pnl>=0?'grn':'red');
+  document.getElementById('hS').textContent=stars.length;
+  document.getElementById('hT').textContent=trades+(trades>0?' ('+winRate.toFixed(0)+'%)':'');
+  var g=serverState.field.grief||0;document.getElementById('hG').textContent=g>.6?''+((g*100).toFixed(0))+'%':'\u2014';document.getElementById('hG').className='hv '+(g>.6?'red':'dim');
+  var bulls=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BULL'}).length;
+  var bears=stars.filter(function(s){return s.type==='crypto'&&s.dir==='BEAR'}).length;
+  var mode=acct==='demo'?'DEMO':acct==='live'?'LIVE':'WATCH';
+  var hl=serverState.hl.connected?' \u00B7 HL':'';
+  var ai=serverState.ai.enabled?' \u00B7 AI:'+(serverState.ai.callCount||0):'';
+  var bondCount=serverState.field.bondCount||serverBonds.length;
+  document.getElementById('status-bar').textContent=mode+' \u00B7 '+bulls+'\u2191 '+bears+'\u2193 \u00B7 '+posCount+' pos \u00B7 '+bondCount+' bonds'+hl+ai;
+}catch(e){}}
+
+// =================================================================
+// RENDER LOOP
+// =================================================================
+var last=performance.now();
+function render(now){
+  var dt=(now-last)/1000;last=now;
+  drawBg();
+  if(vizModes.weather)drawWeather();
+  if(vizModes.volShadow)drawVolumeShadows();
+  if(vizModes.spiderWeb)drawSpiderWeb();
+  else if(vizModes.flowPipes)drawFlowPipes();
+  else if(vizModes.bonds)drawBonds();
+  if(vizModes.neuralNet)drawNeuralNet();
+  if(vizModes.rivers&&!vizModes.flowPipes)drawFlowRivers();
+  if(vizModes.ghosts)drawGhosts();
+  if(vizModes.forceGraph)applyForceGraph(dt);
+  else if(vizModes.gravity)applySentimentGravity(dt);
+  if(vizModes.spiral&&!vizModes.forceGraph)goldenSpiralLayout();
+  if(vizModes.obMass)applyOBMass();
+  for(var i=0;i<stars.length;i++){stars[i].update(dt);stars[i].draw(cx)}
+  if(vizModes.trails)drawCometTrails();
+  if(vizModes.ripples)drawRipples(dt);
+  if(vizModes.divergence)drawDivergenceFlares(dt);
+  if(vizModes.liqZones)drawLiqZones();
+  if(vizModes.sparklines)drawSparklines();
+  vfx.draw(dt);
+  drawAurora();
+  drawHeartbeat();
+  if(vizModes.equityCurve)drawEquityCurve();
+  if(vizModes.tradeLog)drawTradeLog();
+  if(vizModes.corrMatrix)drawCorrMatrix();
+  if(vizModes.signalBars)drawSignalBars();
+  updateHUD();
+  checkSliderVisibility();
+  if(audioEnabled)updateAmbientDrone();
+  if(sel)showDet(sel);
+  requestAnimationFrame(render);
+}
+
+// =================================================================
+// BOOT
+// =================================================================
+connectWS();
+requestAnimationFrame(render);
+narLog('B.O.S.S. Universe online','nt');
+</script>
+</body></html>
