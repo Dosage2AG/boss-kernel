@@ -228,7 +228,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 // ── Config ──────────────────────────────────────────────────────────────────
 // Set REVENUE_WALLET to your dedicated TON receiving address (starts with UQ or EQ).
 // This is a PUBLIC receiving address — safe to include. Never put your private key here.
-var REVENUE_WALLET = 'YOUR_BOSS_REVENUE_WALLET_HERE';
+var REVENUE_WALLET = 'UQBtQLFB0GtP1eBWOio13QbmXBoJigN2VqrvxDRLkgExrWG_';
 var TIER_PRICES = {free:0, trader:16, strategist:50, boss:200};
 var TIER_NAMES  = {free:'🌱 Explorer', trader:'⚡ Trader', strategist:'🎯 Strategist', boss:'👁 B.O.S.S.'};
 
@@ -342,7 +342,7 @@ function openPayModal(tier){
   document.getElementById('pay-title').textContent='Upgrade to '+TIER_NAMES[tier];
   document.getElementById('pay-sub').textContent='30-day access via TON payment';
   document.getElementById('pay-amount').textContent=TIER_PRICES[tier]+' TON';
-  var dest=REVENUE_WALLET\!=='YOUR_BOSS_REVENUE_WALLET_HERE'
+  var dest=REVENUE_WALLET.length>10
     ?REVENUE_WALLET.slice(0,8)+'...'+REVENUE_WALLET.slice(-6):'[wallet not configured]';
   document.getElementById('pay-dest').textContent=dest;
   pendingTier=tier;
@@ -352,7 +352,7 @@ function closeModal(){document.getElementById('pay-modal').classList.remove('ope
 function confirmPayment(){
   haptic('heavy');
   if(\!tonUI||\!walletAddr||\!pendingTier){showToast('Connect wallet first');return;}
-  if(REVENUE_WALLET==='YOUR_BOSS_REVENUE_WALLET_HERE'){showToast('Revenue wallet not set up yet');closeModal();return;}
+  if(REVENUE_WALLET==='UQBtQLFB0GtP1eBWOio13QbmXBoJigN2VqrvxDRLkgExrWG_'){showToast('Revenue wallet not set up yet');closeModal();return;}
   var nano=String(TIER_PRICES[pendingTier]*1e9);
   tonUI.sendTransaction({validUntil:Math.floor(Date.now()/1000)+360,
     messages:[{address:REVENUE_WALLET,amount:nano,payload:btoa('boss_tier_'+pendingTier)}]
