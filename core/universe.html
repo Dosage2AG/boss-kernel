@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>B.O.S.S. Universe</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
@@ -1367,14 +1368,14 @@ function showTiers(){document.getElementById('tier-panel').style.display='block'
 function closeTiers(){document.getElementById('tier-panel').style.display='none'}
 // ── TON Connect wallet integration ────────────────────────────
 var _tonUI=null;var _walletAddr=null;var _pendingTier=null;
+var REVENUE_WALLET='UQBtQLFB0GtP1eBWOio13QbmXBoJigN2VqrvxDRLkgExrWG_';
+var TIER_PRICE_TON={trader:16,strategist:50,boss:200}; // TON per month
 var TIER_MIN_BALANCE={trader:50,strategist:200,boss:500}; // minimum TON to unlock
 
 function _initTonConnect(){
   if(_tonUI)return;
   try{
-    // Manifest as data URI for local/offline use
-    var manifest={url:'https://dosage2ag.github.io/boss',name:'B.O.S.S. Universe',iconUrl:'https://raw.githubusercontent.com/Dosage2AG/resonance-insight/main/icon.png'};
-    var manifestUrl='data:application/json;base64,'+btoa(JSON.stringify(manifest));
+    var manifestUrl='https://dosage2ag.github.io/boss-kernel/telegram/tonconnect-manifest.json';
     _tonUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:manifestUrl,buttonRootId:null});
     _tonUI.onStatusChange(function(wallet){
       if(wallet){
@@ -1385,7 +1386,7 @@ function _initTonConnect(){
         if(_pendingTier){
           var minBal=TIER_MIN_BALANCE[_pendingTier]||0;
           if(balTON>=minBal){
-            _activateTier(_pendingTier,balTON);
+            _sendTierPayment(_pendingTier);
           }else{
             narrator.log('Insufficient balance for '+_pendingTier.toUpperCase()+'. Need '+minBal+' TON, have '+balTON.toFixed(1),'nt-grief');
           }
@@ -1411,6 +1412,22 @@ function _activateTier(t,balance){
     if(aiCouncil)aiCouncil.enabled=true;
     narrator.log('AI consensus enabled for '+t.toUpperCase(),'nt-cascade');
   }
+}
+
+function _sendTierPayment(t){
+  var price=TIER_PRICE_TON[t]||0;
+  if(!price||!_tonUI||!_walletAddr){_activateTier(t,0);return;}
+  var nanoton=(price*1e9).toString();
+  var comment=btoa('BOSS_TIER:'+t.toUpperCase());
+  _tonUI.sendTransaction({
+    validUntil:Math.floor(Date.now()/1000)+300,
+    messages:[{address:REVENUE_WALLET,amount:nanoton,payload:comment}]
+  }).then(function(){
+    narrator.log('Payment sent: '+price+' TON for '+t.toUpperCase(),'nt-trade');
+    _activateTier(t,parseFloat(_walletAddr?'0':'0'));
+  }).catch(function(e){
+    narrator.log('Payment cancelled or failed: '+e.message,'nt-grief');
+  });
 }
 
 function _connectWalletForTier(t){
@@ -2270,5 +2287,11 @@ bnbWS.connect();          // Binance WebSocket — live price ticks
 polyScanner.start();      // Polymarket scanner — prediction market prices
 // Reset world map cache on resize
 window.addEventListener('resize',function(){_worldMapCanvas=null});
+// Telegram Mini App init
+if(window.Telegram&&window.Telegram.WebApp){
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+  document.body.style.background=Telegram.WebApp.colorScheme==='light'?'#000008':'#000008';
+}
 </script>
 </body></html>
